@@ -8,7 +8,8 @@
 #SBATCH -J mali-tg-wft
 #SBATCH -n 68
 #SBATCH --tasks-per-node=68
-#SBATCH -A m1795
+##SBATCH -A m1795
+#SBATCH -A m1041
 
 # Script to alternately run MALI and GIA in a data-coupled fashion.
 # There are assumptions of a one year coupling interval.
@@ -32,12 +33,12 @@
 # ===================
 # Set these locations and vars
 GIAPATH=.
-MALI=./landice_model_intel_knl_aug_2020
+MALI=./landice_model
 MALI_INPUT=thwaites.4km.cleaned.nc
 MALI_OUTPUT=output-cpl.nc
 MALI_NL=namelist.landice
 MALI_STREAMS=streams.landice
-RUN_DURATION=5
+RUN_DURATION=10
 CPL_DT=1.0
 
 RESTART_SCRIPT=0 # should be 0 or 1
@@ -127,7 +128,8 @@ for i in $(seq $start_ind $END_ITER); do
    echo "Starting MALI at time:"
    date
    #srun -n 36 $MALI
-   srun -n 68 $MALI
+   #srun -n 68 $MALI
+   time srun -n 68 --cpu-bind=cores --hint=nomultithread $MALI
    echo "Finished MALI at time:"
    date
 
