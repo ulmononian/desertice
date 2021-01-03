@@ -353,8 +353,8 @@ class BuelerTopgFlux(TopgFluxBase):
 
         self.interper = RectBivariateSpline(self.xg, self.yg, self.Udot.T)
 
-        if n % self.nwrite == 0:
-            pickle.dump(self.Uhatn, open(self.gfname.format(n), 'w'))
+        #if n % self.nwrite == 0:
+        #    pickle.dump(self.Uhatn, open(self.gfname.format(n), 'w'))
 
 
     def _Udot_from_dLhat(self, dLhat):
@@ -368,14 +368,14 @@ class BuelerTopgFlux(TopgFluxBase):
         # Update uplift field prior to including elastic effect, so that fluid
         # equilibrium is corrct.
 
-        self.Uhatn = self.Uhatn + self.Uhatdot*self.dt
+        self.Uhatn = self.Uhatn + Uhatdot*self.dt
         # self.Uhatn += Uhatdot*self.dt
         # Now include the elastic effect if requested.
         if self.include_elastic:
             uedot = self.ue*(dLhat - self.dLhatold)/self.dt
-            self.Uhatdot += uedot
+            Uhatdot += uedot
             self.uedotold = uedot
-        self.Udot = self.ifft2andcrop(self.Uhatdot)
+        self.Udot = self.ifft2andcrop(Uhatdot)
 
 class CathlesTopgFlux(TopgFluxBase):
     def initialize(self):
@@ -511,3 +511,4 @@ if __name__ == '__main__':
                 print('Restart test success')
             else:
                 print('Restart test fail')
+

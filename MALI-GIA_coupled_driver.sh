@@ -1,15 +1,17 @@
 #!/bin/bash -l
 
-#SBATCH --qos=debug
-##SBATCH --qos=regular
+##SBATCH --qos=overrun
+#SBATCH --qos=regular
 ##SBATCH --qos=premium
 #SBATCH --constraint=knl
-#SBATCH -t 00:30:00
+##SBATCH --time-min=01:00:00
+#SBATCH -t 01:00:00
 #SBATCH -J mali-tg-wft
 #SBATCH -n 68
 #SBATCH --tasks-per-node=68
 ##SBATCH -A m1795
-#SBATCH -A m1041
+##SBATCH -A m1041
+#SBATCH -A m3412
 
 # Script to alternately run MALI and GIA in a data-coupled fashion.
 # There are assumptions of a one year coupling interval.
@@ -38,7 +40,7 @@ MALI_INPUT=thwaites.4km.cleaned.nc
 MALI_OUTPUT=output-cpl.nc
 MALI_NL=namelist.landice
 MALI_STREAMS=streams.landice
-RUN_DURATION=10
+RUN_DURATION=50
 CPL_DT=1.0
 
 RESTART_SCRIPT=0 # should be 0 or 1
@@ -50,6 +52,7 @@ MALILOAD=mali_load.nc
 GIAOUTPUT=uplift_GIA.nc
 
 
+export HDF5_USE_FILE_LOCKING=FALSE
 #source /users/mhoffman/setup_badger_mods.20181206.sh
 source /global/project/projectdirs/e3sm/software/anaconda_envs/load_latest_e3sm_unified.sh
 meshvars="latCell,lonCell,xCell,yCell,zCell,indexToCellID,latEdge,lonEdge,xEdge,yEdge,zEdge,indexToEdgeID,latVertex,lonVertex,xVertex,yVertex,zVertex,indexToVertexID,cellsOnEdge,nEdgesOnCell,nEdgesOnEdge,edgesOnCell,edgesOnEdge,weightsOnEdge,dvEdge,dcEdge,angleEdge,areaCell,areaTriangle,cellsOnCell,verticesOnCell,verticesOnEdge,edgesOnVertex,cellsOnVertex,kiteAreasOnVertex"
@@ -103,10 +106,12 @@ for i in $(seq $start_ind $END_ITER); do
       echo "This is the first iteration of a new simulation: Preparing new run."
 
       # Set up GIA mesh
-      #$GIAPATH/create_GIA_domain.py -m $MALI_INPUT -g $GIAGRID
-      #rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+      echo "Setting up GIA mesh"
+      $GIAPATH/create_GIA_domain.py -m $MALI_INPUT -g $GIAGRID
+      rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 
       # Set restart flag to false, to be safe
+      echo "Setting restart flags in namelist"
       sed -i.SEDBACKUP "s/config_do_restart.*/config_do_restart = .false./" $MALI_NL
       sed -i.SEDBACKUP "s/config_start_time.*/config_start_time = '0000-01-01_00:00:00'/" $MALI_NL
 
