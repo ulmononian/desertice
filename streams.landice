@@ -9,16 +9,6 @@
                   filename_template="thwaites.4km.cleaned.nc"
                   input_interval="initial_only"/>
 
-<stream name="forcing"
-    filename_template="bedtopo_update_mpas.nc"
-    input_interval="0001-00-00_00:00:00"
-    record_interval="0001-00-00_00:00:00"
-    filename_interval="none"
-    reference_time="0000-01-01_00:00:00"
-    type="input">
-   <var name="bedTopography"/>
-</stream>
-
 <immutable_stream name="restart"
                   type="input;output"
                   filename_template="restart.$Y-$M-$D_$h.$m.$s.nc"
