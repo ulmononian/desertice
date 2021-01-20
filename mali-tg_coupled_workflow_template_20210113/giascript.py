@@ -54,7 +54,7 @@ class TopgFluxBase(object):
     tmax    :   The maximum time of simulation (used to load plot files)
     dt      :   The time step of the coupling.
     ekwargs :   a dict of earth rheology parameters.
-        Accepted keys:  u (viscosity, single vinscoust halfspace)
+        Accepted keys:  u (viscosity, single viscous halfspace)
                         u1, u2, h (h thick layer with u2, over u1 halfspace)
                         g (gravity, defualt 9.8)
                         rho_r (density of mantle rock, default 3313)
