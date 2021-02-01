@@ -1,17 +1,14 @@
 #!/bin/bash -l
 
-##SBATCH --qos=overrun
+##SBATCH --qos=debug
 #SBATCH --qos=regular
 ##SBATCH --qos=premium
 #SBATCH --constraint=knl
-##SBATCH --time-min=01:00:00
-#SBATCH -t 12:00:00
-#SBATCH -J mali-tg-wft
-#SBATCH -n 68
+#SBATCH -t 1:00:00
+#SBATCH -J TG1km
+#SBATCH -N 5
 #SBATCH --tasks-per-node=68
 #SBATCH -A m1795
-##SBATCH -A m1041
-##SBATCH -A m3412
 
 # Script to alternately run MALI and GIA in a data-coupled fashion.
 # There are assumptions of a one year coupling interval.
@@ -35,15 +32,16 @@
 # ===================
 # Set these locations and vars
 GIAPATH=.
-MALI=./landice_model
-MALI_INPUT=thwaites.4km.cleaned.nc
+MALI=./landice_model_intel_20210115
+MALI_INPUT=Thwaites_1to8km_r02_20210119.nc
 MALI_OUTPUT=output-cpl.nc
 MALI_NL=namelist.landice
 MALI_STREAMS=streams.landice
+START_YEAR=2015
 RUN_DURATION=300
 CPL_DT=1.0
 
-RESTART_SCRIPT=0 # should be 0 or 1
+RESTART_SCRIPT=1 # should be 0 or 1
 # ==================
 
 # Other things you could change
@@ -73,7 +71,8 @@ echo cpl_dt=$cpl_dt_formatted
 
 if [ $RESTART_SCRIPT -eq 1 ]; then
   start_ind=`cat coupler_restart.txt`
-  python -c "s=int($CPL_DT*$start_ind); print('{0:04d}-01-01_00:00:00'.format(s))" > restart_timestamp
+  #python -c "s=int($CPL_DT*$start_ind); print('{0:04d}-01-01_00:00:00'.format(s))" > restart_timestamp
+  python -c "s=int($CPL_DT*$start_ind)+${START_YEAR}; print('{0:04d}-01-01_00:00:00'.format(s))" > restart_timestamp
   echo "new restart_timestamp value: " `cat restart_timestamp`
 else
   start_ind=0
@@ -113,8 +112,10 @@ for i in $(seq $start_ind $END_ITER); do
       # Set restart flag to false, to be safe
       echo "Setting restart flags in namelist"
       sed -i.SEDBACKUP "s/config_do_restart.*/config_do_restart = .false./" $MALI_NL
-      sed -i.SEDBACKUP "s/config_start_time.*/config_start_time = '0000-01-01_00:00:00'/" $MALI_NL
-
+      #sed -i.SEDBACKUP "s/config_start_time.*/config_start_time = '0000-01-01_00:00:00'/" $MALI_NL
+      #sed -i.SEDBACKUP "s/config_start_time.*/config_start_time = '2015-01-01_00:00:00'/" $MALI_NL
+      sed -i.SEDBACKUP "s/config_start_time.*/config_start_time = '${START_YEAR}-01-01_00:00:00'/" $MALI_NL
+      
       # Set GIA model args for a cold run
       GIAARGS="-d $CPL_DT"
    else # this is a restart
@@ -134,7 +135,8 @@ for i in $(seq $start_ind $END_ITER); do
    date
    #srun -n 36 $MALI
    #srun -n 68 $MALI
-   time srun -n 68 --cpu-bind=cores --hint=nomultithread $MALI
+   #time srun -n 68 --cpu-bind=cores --hint=nomultithread $MALI
+   time srun -n 340 --cpu-bind=cores --hint=nomultithread $MALI    
    echo "Finished MALI at time:"
    date
 
@@ -143,29 +145,36 @@ for i in $(seq $start_ind $END_ITER); do
 
    # interpolate ice load to GIA grid
    # copy second to last time of the needed fields.  This represents the prior year.
-   ncks -A -d Time,-2 -v thickness,bedTopography,$meshvars $MALI_OUTPUT $MALILOAD
+   echo "Copying thickness and bed topography fields from $MALI_OUTPUT into $MALILOAD."
+   time ncks -A -d Time,-2 -v thickness,bedTopography,$meshvars $MALI_OUTPUT $MALILOAD
+   echo "Finished copying thickness and bed topography fields into $MALILOAD."
    rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
    cp $MALILOAD iteration_archive/iter_${i}
-
-   $GIAPATH/interp_MALI-GIA.py -d g -m $MALILOAD -g $GIAGRID
+   
+   echo "Interpolating $MALILOAD onto the GIA grid."
+   time $GIAPATH/interp_MALI-GIA.py -d g -m $MALILOAD -g $GIAGRID
+   echo "Finished interpolating $MALILOAD onto the GIA grid."
    rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
    cp iceload.nc iteration_archive/iter_${i}
 
    # Run GIA model
    echo "Starting GIA model"
-   $GIAPATH/mali-gia-driver.py $GIAARGS
+   time $GIAPATH/mali-gia-driver.py $GIAARGS
+   echo "Finished GIA model"
    rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
    cp $GIAOUTPUT iteration_archive/iter_${i}
-   echo "Finished GIA model"
 
    # interpolate bed topo to MALI grid
-   $GIAPATH/interp_MALI-GIA.py -d m -m $MALI_INPUT -g $GIAOUTPUT
+   echo "Interpolating GIA uplift field onto the MALI grid."
+   time $GIAPATH/interp_MALI-GIA.py -d m -m $MALI_INPUT -g $GIAOUTPUT
+   echo "Finished interpolating GIA uplift field onto MALI grid." 
    rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
    cp bedtopo_update_mpas.nc iteration_archive/iter_${i}
 
    # Stick new bed topo into restart file
    # (could also input it as a forcing file... not sure which is better)
-   RSTTIME=`head -c 20 restart_timestamp | tail -c 19 | tr : .`
+   #RSTTIME=`head -c 20 restart_timestamp | tail -c 19 | tr : .`
+   RSTTIME=`head -c 20 restart_timestamp | tail -c 20 | tr : .`
    RSTFILE=restart.$RSTTIME.nc
    echo restart time=$RSTTIME
    echo restart filename=$RSTFILE
@@ -180,8 +189,9 @@ for i in $(seq $start_ind $END_ITER); do
 
    # ncks -A -v bedTopography bedtopo_update_mpas.nc $RSTFILE
    # rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
-
-   ncks -A -v upliftRate bedtopo_update_mpas.nc $RSTFILE
+   echo "Copying upliftRate field to the restart file."
+   time ncks -A -v upliftRate bedtopo_update_mpas.nc $RSTFILE
+   echo "Finished copying upliftRate field to the restart file."
    rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 
 

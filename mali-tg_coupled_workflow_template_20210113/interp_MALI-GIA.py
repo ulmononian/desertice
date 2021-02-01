@@ -210,7 +210,11 @@ if options.destination== 'g':
 
     print("Creating interpolation object")
     maxDist = MPASfile.variables['dcEdge'][:].max() * 1.0
+    start_weight_timer = time.time()
     vtx, wts, outsideIndx = delaunay_interp_weights(mpasXY, giaXY, maxDist)
+    end_weight_timer = time.time()
+    elapsed_time = end_weight_timer - start_weight_timer
+    print("Elapsed time to determine Delaunay weights:", elapsed_time)
 
     print("Begin interpolation")
     nt = len(MPASfile.dimensions['Time'])

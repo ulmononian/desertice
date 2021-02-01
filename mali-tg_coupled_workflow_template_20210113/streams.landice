@@ -1,13 +1,13 @@
 <streams>
 
 <immutable_stream name="basicmesh"
-                  type="none"
-                  filename_template="not-to-be-used.nc"/>
+                  filename_template="not-to-be-used.nc"
+                  type="none"/>
 
 <immutable_stream name="input"
-                  type="input"
-                  filename_template="thwaites.4km.cleaned.nc"
-                  input_interval="initial_only"/>
+                  filename_template="Thwaites_1to8km_r02_20210119.nc"
+                  input_interval="initial_only"
+                  type="input"/>
 
 <immutable_stream name="restart"
                   type="input;output"
@@ -16,56 +16,102 @@
                   precision="double"
                   clobber_mode="replace_files"
                   input_interval="initial_only"
-                  reference_time="0000-01-01_00:00:00"
+                  reference_time="2015-01-01_00:00:00"
                   output_interval="0001-00-00_00:00:00"/>
 
-<stream name="globalStatsOutput" 
+<stream name="ismip6_TF" 
+	type="input"
+        mode="forward;analysis"
+        filename_template="/global/project/projectdirs/piscees/MALI_projects/Thwaites_GIA/ismip6_forcing/TF_NorESM_8.5_2015-2100_Thwaites1km.nc"
+    input_interval="0001-00-00_00:00:00"
+    record_interval="0001-00-00_00:00:00"
+                  reference_time="2015-01-01_00:00:00"
+        runtime_format="single_file">
+        <var name="ismip6shelfMelt_3dThermalForcing"/> 
+        <var name="ismip6shelfMelt_zOcean"/> 
+</stream>
+
+<stream name="ismip6_TF_init" 
+	type="input"
+        mode="forward;analysis"
+        filename_template="/global/project/projectdirs/piscees/MALI_projects/Thwaites_GIA/ismip6_forcing/TF_NorESM_8.5_2015-2100_Thwaites1km.nc"
+    input_interval="initial_only"
+        runtime_format="single_file">
+        <var name="ismip6shelfMelt_3dThermalForcing"/> 
+        <var name="ismip6shelfMelt_zOcean"/> 
+</stream>
+
+<stream name="ismip6_ocean_params" 
+	type="input"
+        mode="forward;analysis"
+        filename_template="/global/project/projectdirs/piscees/MALI_projects/Thwaites_GIA/ismip6_forcing/ismip6_basins_gamma0_deltaT_nonlocal_median_PIGL_Thwaites1km.nc"
+        input_interval="initial_only"
+        runtime_format="single_file">
+        <var name="ismip6shelfMelt_deltaT"/>
+        <var name="ismip6shelfMelt_basin"/> 
+        <var name="ismip6shelfMelt_gamma0"/> 
+</stream>
+
+<!--
+<stream name="ismip6_3" 
+	type="input"
+        mode="forward;analysis"
+        filename_template="../forcing/ismip6shelfMelt_offset_NorESM_8.5_2015.nc"
+        input_interval="initial_only"
+        runtime_format="single_file">
+        <var name="ismip6shelfMelt_offset"/> 
+</stream>
+-->
+
+<stream name="ismip6_smb" 
+	type="input"
+        mode="forward;analysis"
+        filename_template="/global/project/projectdirs/piscees/MALI_projects/Thwaites_GIA/ismip6_forcing/SMB_NorESM_8.5_1995-2100.Thwaites1km.nc"
+    input_interval="0001-00-00_00:00:00"
+    record_interval="0001-00-00_00:00:00"
+                  reference_time="2015-01-01_00:00:00"
+        runtime_format="single_file">
+        <var name="sfcMassBal"/> 
+</stream>
+
+<stream name="output2"
+        clobber_mode="overwrite"
+        output_interval="0000-00-00_01:00:00"
+        filename_interval="0005-00-00_00:00:00"
+        filename_template="output_$Y.nc"
+                  reference_time="2015-01-01_00:00:00"
+	type="output">
+
+    <stream name="basicmesh"/>
+    <var name="cellProcID"/>
+    <var name="xtime"/>
+    <var name="daysSinceStart"/>
+    <var name="thickness"/>
+    <var name="bedTopography"/>
+    <var name="upliftRate"/>
+    <var name="surfaceSpeed"/>
+    <var name="cellMask"/>
+    <var name="sfcMassBalApplied"/>
+    <var name="floatingBasalMassBal"/>
+    <var name="deltat"/>
+    <var name="dHdt"/>
+</stream>
+
+<stream name="globalStatsOutput"
         type="output"
         filename_template="globalStats.nc"
         filename_interval="none"
         clobber_mode="overwrite"
-        reference_time="0000-01-01_00:00:00"
-        output_interval="0000-00-01_00:00:00"
+        output_interval="0000-00-00_01:00:00"
         packages="globalStatsAMPKG"
         runtime_format="single_file">
-
     <stream name="globalStatsOutput"/>
-    <var name="daysSinceStart"/>
     <var name="xtime"/>
+    <var name="daysSinceStart"/>
     <var name="deltat"/>
     <var name="allowableDtACFL"/>
     <var name="allowableDtDCFL"/>
     <var_struct name="globalStatsAM"/>
-
-</stream>
-
-<stream name="output2"
-        type="output"
-        filename_template="output.nc"
-        filename_interval="500-00-00_00:00:00"
-        precision="double"
-        reference_time="0000-01-01_00:00:00"
-        clobber_mode="overwrite"
-        output_interval="0001-00-00_00:00:00">
-
-    <stream name="basicmesh"/>
-    <var name="xtime"/>
-    <var name="thickness"/>
-    <var name="bedTopography"/>
-    <var name="lowerSurface"/>
-    <var name="upperSurface"/>
-    <var name="surfaceSpeed"/>
-    <var name="floatingBasalMassBal"/>
-    <var name="sfcMassBal"/>
-    <var name="daysSinceStart"/>
-    <var name="deltat"/>
-    <var name="allowableDtACFL"/>
-    <var name="allowableDtDCFL"/>
-    <var name="cellMask"/>
-    <var name="edgeMask"/>
-    <var name="dHdt"/>
-    <var name="dynamicThickening"/>
-
 </stream>
 
 <stream name="output"
@@ -73,7 +119,7 @@
         filename_template="output-cpl.nc"
         filename_interval="500-00-00_00:00:00"
         precision="double"
-        reference_time="0000-01-01_00:00:00"
+        reference_time="2015-01-01_00:00:00"
         clobber_mode="overwrite"
         output_interval="0001-00-00_00:00:00">
 
@@ -81,8 +127,8 @@
     <var name="xtime"/>
     <var name="thickness"/>
     <var name="bedTopography"/>
+    <var name="upliftRate"/>
     <var name="daysSinceStart"/>
 </stream>
-
 
 </streams>
