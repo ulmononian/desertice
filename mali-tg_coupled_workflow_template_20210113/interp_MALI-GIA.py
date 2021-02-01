@@ -34,6 +34,7 @@ from collections import OrderedDict
 import scipy.spatial
 import time
 from datetime import datetime
+import pickle
 
 print("== Gathering information.  (Invoke with --help for more details. All arguments are optional)\n")
 parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
@@ -41,6 +42,7 @@ parser.description = __doc__
 parser.add_argument("-d", "--destination", dest="destination", choices=('m','g'), help="flag to indicate if the MALI grid or the GIA grid is the destination: 'g' or 'm'.  Required.", metavar="DESTINATION")
 parser.add_argument("-m", "--mpas", dest="mpasFile", help="name of MPAS file", default="landice_grid.nc", metavar="FILENAME")
 parser.add_argument("-g", "--gia", dest="giaFile", help="name of GIA file", default="gia_grid.nc", metavar="FILENAME")
+parser.add_argument("-w", "--weights", dest="interp_weights", help="weights for Delaunay interpolation")
 #for option in parser.option_list:
 #    if option.default != ("NO", "DEFAULT"):
 #        option.help += (" " if option.help else "") + "[default: %default]"
@@ -211,10 +213,16 @@ if options.destination== 'g':
     print("Creating interpolation object")
     maxDist = MPASfile.variables['dcEdge'][:].max() * 1.0
     start_weight_timer = time.time()
-    vtx, wts, outsideIndx = delaunay_interp_weights(mpasXY, giaXY, maxDist)
+    if options.interp_weights == "e":
+        with open('M2G.pickle', 'rb') as f:
+            vtx, wts, outsideIndx = pickle.load(f)
+    else:
+        vtx, wts, outsideIndx = delaunay_interp_weights(mpasXY, giaXY, maxDist)
+        with open('M2G.pickle', 'wb') as f:
+            pickle.dump([vtx, wts, outsideIndx], f)
     end_weight_timer = time.time()
     elapsed_time = end_weight_timer - start_weight_timer
-    print("Elapsed time to determine Delaunay weights:", elapsed_time)
+    print("Elapsed time to determine Delaunay weights for MALI to GIA:", elapsed_time)
 
     print("Begin interpolation")
     nt = len(MPASfile.dimensions['Time'])
@@ -224,11 +232,16 @@ if options.destination== 'g':
        # could use xtime if available...
        years = np.arange(nt)
        print("NOTE: No 'daysSinceStart' variable found.  Assuming that time levels represent integer years.")
+
+    thk_bas_stime = time.time()
     for t in range(nt):
         #print "Time {} = year {}".format(t, years[t])
         thk[t,:,:] = np.reshape(delaunay_interpolate(MPASfile.variables['thickness'][t,:]), (ny,nx))
         bas[t,:,:] = np.reshape(delaunay_interpolate(MPASfile.variables['bedTopography'][t,:]), (ny,nx))
         tout[t] = t
+    thk_bas_etime = time.time()
+    thk_bas_ttime = thk_bas_etime - thk_bas_stime
+    print("Time to build thk/bas arrays from MALI to GIA:", thk_bas_ttime)
 
     # Update history attribute of netCDF file
     thiscommand = datetime.now().strftime("%a %b %d %H:%M:%S %Y") + ": " + " ".join(sys.argv[:])
@@ -250,7 +263,18 @@ if options.destination == 'm':
     bedUplift = fout.createVariable('upliftRate', 'd', ('Time', 'nCells'))
 
     print("Creating interpolation object")
-    vtx, wts, outsideIndx = delaunay_interp_weights(giaXY, mpasXY)
+    start_weight_timer = time.time()
+    if options.interp_weights == "e":
+        with open('G2M.pickle', 'rb') as f:
+            vtx, wts, outsideIndx = pickle.load(f)
+    else:
+        vtx, wts, outsideIndx = delaunay_interp_weights(giaXY, mpasXY)
+        with open('G2M.pickle', 'wb') as f:
+            pickle.dump([vtx, wts, outsideIndx], f)
+    end_weight_timer = time.time()
+    end_weight_timer = time.time()
+    elapsed_time = end_weight_timer - start_weight_timer
+    print("Elapsed time to determine Delaunay weights for GIA to MALI:", elapsed_time)
 
     nt = len(giaFile.dimensions['Time'])
     years = giaFile.variables['Time'][:]

@@ -41,7 +41,7 @@ START_YEAR=2015
 RUN_DURATION=300
 CPL_DT=1.0
 
-RESTART_SCRIPT=1 # should be 0 or 1
+RESTART_SCRIPT=0 # should be 0 or 1
 # ==================
 
 # Other things you could change
@@ -152,7 +152,14 @@ for i in $(seq $start_ind $END_ITER); do
    cp $MALILOAD iteration_archive/iter_${i}
    
    echo "Interpolating $MALILOAD onto the GIA grid."
-   time $GIAPATH/interp_MALI-GIA.py -d g -m $MALILOAD -g $GIAGRID
+   if [[-f "M2G.pickle"]]; then
+       echo "Delaunay interpolation weights for MALI to GIA grid already exist. Continuing."
+       E='e'
+       time $GIAPATH/interp_MALI-GIA.py -d g -m $MALILOAD -g $GIAGRID -w $E 
+    else
+       echo "Delaunay interpolation weights for MALI to GIA grid do not yet exist. Creating them..."
+       time $GIAPATH/interp_MALI-GIA.py -d g -m $MALILOAD -g $GIAGRID
+   fi
    echo "Finished interpolating $MALILOAD onto the GIA grid."
    rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
    cp iceload.nc iteration_archive/iter_${i}
@@ -166,15 +173,22 @@ for i in $(seq $start_ind $END_ITER); do
 
    # interpolate bed topo to MALI grid
    echo "Interpolating GIA uplift field onto the MALI grid."
-   time $GIAPATH/interp_MALI-GIA.py -d m -m $MALI_INPUT -g $GIAOUTPUT
+   if [[-f "G2M.pickle"]]; then
+       echo "Delaunay interpolation weights for GIA to MALI grid already exist. Continuing."
+       E='e'
+       time $GIAPATH/interp_MALI-GIA.py -d g -m $MALILOAD -g $GIAGRID -w $E
+   else
+       echo "Delaunay interpolation weights for GIA to MALI grid do not yet exist. Creating them..."
+       time $GIAPATH/interp_MALI-GIA.py -d g -m $MALILOAD -g $GIAGRID
+   fi
    echo "Finished interpolating GIA uplift field onto MALI grid." 
    rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
    cp bedtopo_update_mpas.nc iteration_archive/iter_${i}
 
    # Stick new bed topo into restart file
    # (could also input it as a forcing file... not sure which is better)
-   #RSTTIME=`head -c 20 restart_timestamp | tail -c 19 | tr : .`
-   RSTTIME=`head -c 20 restart_timestamp | tail -c 20 | tr : .`
+   RSTTIME=`head -c 20 restart_timestamp | tail -c 19 | tr : .`
+   #RSTTIME=`head -c 20 restart_timestamp | tail -c 20 | tr : .`
    RSTFILE=restart.$RSTTIME.nc
    echo restart time=$RSTTIME
    echo restart filename=$RSTFILE
