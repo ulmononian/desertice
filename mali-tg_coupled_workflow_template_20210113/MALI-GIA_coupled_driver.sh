@@ -4,7 +4,7 @@
 #SBATCH --qos=regular
 ##SBATCH --qos=premium
 #SBATCH --constraint=knl
-#SBATCH -t 1:00:00
+#SBATCH -t 12:00:00
 #SBATCH -J TG1km
 #SBATCH -N 5
 #SBATCH --tasks-per-node=68
@@ -41,7 +41,7 @@ START_YEAR=2015
 RUN_DURATION=300
 CPL_DT=1.0
 
-RESTART_SCRIPT=0 # should be 0 or 1
+RESTART_SCRIPT=1 # should be 0 or 1
 # ==================
 
 # Other things you could change
@@ -152,7 +152,7 @@ for i in $(seq $start_ind $END_ITER); do
    cp $MALILOAD iteration_archive/iter_${i}
    
    echo "Interpolating $MALILOAD onto the GIA grid."
-   if [[-f "M2G.pickle"]]; then
+   if [ -f "M2G.pickle" ]; then
        echo "Delaunay interpolation weights for MALI to GIA grid already exist. Continuing."
        E='e'
        time $GIAPATH/interp_MALI-GIA.py -d g -m $MALILOAD -g $GIAGRID -w $E 
@@ -173,13 +173,13 @@ for i in $(seq $start_ind $END_ITER); do
 
    # interpolate bed topo to MALI grid
    echo "Interpolating GIA uplift field onto the MALI grid."
-   if [[-f "G2M.pickle"]]; then
+   if [ -f "G2M.pickle" ]; then
        echo "Delaunay interpolation weights for GIA to MALI grid already exist. Continuing."
        E='e'
-       time $GIAPATH/interp_MALI-GIA.py -d g -m $MALILOAD -g $GIAGRID -w $E
+       time $GIAPATH/interp_MALI-GIA.py -d m -m $MALI_INPUT -g $GIAOUTPUT -w $E
    else
        echo "Delaunay interpolation weights for GIA to MALI grid do not yet exist. Creating them..."
-       time $GIAPATH/interp_MALI-GIA.py -d g -m $MALILOAD -g $GIAGRID
+       time $GIAPATH/interp_MALI-GIA.py -d m -m $MALI_INPUT -g $GIAOUTPUT
    fi
    echo "Finished interpolating GIA uplift field onto MALI grid." 
    rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
