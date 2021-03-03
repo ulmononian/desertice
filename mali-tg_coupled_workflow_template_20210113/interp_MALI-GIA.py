@@ -213,7 +213,7 @@ if options.destination== 'g':
     print("Creating interpolation object")
     maxDist = MPASfile.variables['dcEdge'][:].max() * 1.0
     start_weight_timer = time.time()
-    if options.interp_weights == "e":
+    if options.interp_weights == 'e':
         with open('M2G.pickle', 'rb') as f:
             vtx, wts, outsideIndx = pickle.load(f)
     else:
@@ -264,7 +264,7 @@ if options.destination == 'm':
 
     print("Creating interpolation object")
     start_weight_timer = time.time()
-    if options.interp_weights == "e":
+    if options.interp_weights == 'e':
         with open('G2M.pickle', 'rb') as f:
             vtx, wts, outsideIndx = pickle.load(f)
     else:
