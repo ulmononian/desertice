@@ -74,9 +74,9 @@
         <var name="sfcMassBal"/> 
 </stream>
 
-<stream name="output2"
+<stream name="output"
         clobber_mode="overwrite"
-        output_interval="0000-00-00_01:00:00"
+        output_interval="0001-00-00_00:00:00"
         filename_interval="0005-00-00_00:00:00"
         filename_template="output_$Y.nc"
                   reference_time="2015-01-01_00:00:00"
@@ -87,12 +87,15 @@
     <var name="xtime"/>
     <var name="daysSinceStart"/>
     <var name="thickness"/>
+    <var name="upperSurface"/>
+    <var name="lowerSurface"/>
     <var name="bedTopography"/>
     <var name="upliftRate"/>
     <var name="surfaceSpeed"/>
     <var name="cellMask"/>
     <var name="sfcMassBalApplied"/>
     <var name="floatingBasalMassBal"/>
+    <var name="groundedBasalMassBal"/>
     <var name="deltat"/>
     <var name="dHdt"/>
 </stream>
@@ -114,10 +117,9 @@
     <var_struct name="globalStatsAM"/>
 </stream>
 
-<stream name="output"
+<stream name="output-cpl"
         type="output"
         filename_template="output-cpl.nc"
-        filename_interval="500-00-00_00:00:00"
         precision="double"
         reference_time="2015-01-01_00:00:00"
         clobber_mode="overwrite"
