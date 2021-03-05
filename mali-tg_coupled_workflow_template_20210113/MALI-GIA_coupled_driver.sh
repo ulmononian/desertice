@@ -41,7 +41,7 @@ START_YEAR=2015
 RUN_DURATION=300
 CPL_DT=1.0
 
-RESTART_SCRIPT=1 # should be 0 or 1
+RESTART_SCRIPT=0 # should be 0 or 1
 # ==================
 
 # Other things you could change
@@ -79,21 +79,8 @@ else
 fi
 echo start_ind=$start_ind
 
-# if [ $RESTART_SCRIPT -eq 1 ]; then
-#   # REDO THE FINAL ITERATION
-#   RSTTIME=`head -c 20 restart_timestamp | tail -c 19`
-#   RSTYR=`echo $RSTTIME|head -c 4`
-#   echo RSTYR=$RSTYR
-#   startyear=`python -c "newyr=int('$RSTYR'); print '{0:04d}'.format(newyr-$CPL_DT)"`
-#   echo startyear=$startyear
-#   echo " $startyear-01-01_00:00:00" > restart_timestamp
-# else
-#   startyear=0
-# fi
-
 mkdir iteration_archive
 
-# for i in $(seq $startyear $END_ITER); do
 for i in $(seq $start_ind $END_ITER); do
 
    echo ""; echo ""
@@ -112,8 +99,6 @@ for i in $(seq $start_ind $END_ITER); do
       # Set restart flag to false, to be safe
       echo "Setting restart flags in namelist"
       sed -i.SEDBACKUP "s/config_do_restart.*/config_do_restart = .false./" $MALI_NL
-      #sed -i.SEDBACKUP "s/config_start_time.*/config_start_time = '0000-01-01_00:00:00'/" $MALI_NL
-      #sed -i.SEDBACKUP "s/config_start_time.*/config_start_time = '2015-01-01_00:00:00'/" $MALI_NL
       sed -i.SEDBACKUP "s/config_start_time.*/config_start_time = '${START_YEAR}-01-01_00:00:00'/" $MALI_NL
       
       # Set GIA model args for a cold run
@@ -133,8 +118,6 @@ for i in $(seq $start_ind $END_ITER); do
    # First run MALI
    echo "Starting MALI at time:"
    date
-   #srun -n 36 $MALI
-   #srun -n 68 $MALI
    #time srun -n 68 --cpu-bind=cores --hint=nomultithread $MALI
    time srun -n 340 --cpu-bind=cores --hint=nomultithread $MALI    
    echo "Finished MALI at time:"
@@ -194,20 +177,15 @@ for i in $(seq $start_ind $END_ITER); do
    echo restart filename=$RSTFILE
 
    if [ $RESTART_SCRIPT -eq 1 ]; then
-#     let jj=${i}+1
-#     cp $RSTFILE $RSTFILE.iter${jj}.bak  # back up first (maybe remove later)
      cp $RSTFILE iteration_archive/iter_${i}
    else
      cp $RSTFILE iteration_archive/iter_${i}
    fi
 
-   # ncks -A -v bedTopography bedtopo_update_mpas.nc $RSTFILE
-   # rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
    echo "Copying upliftRate field to the restart file."
    time ncks -A -v upliftRate bedtopo_update_mpas.nc $RSTFILE
    echo "Finished copying upliftRate field to the restart file."
    rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
-
 
 
    echo "Finished iteration $i"
