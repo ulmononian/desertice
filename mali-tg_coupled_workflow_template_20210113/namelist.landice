@@ -58,7 +58,7 @@
     config_do_restart = .false.
     config_restart_timestamp_name = 'restart_timestamp'
     config_start_time = '2015-01-01_00:00:00'
-    config_stop_time = '2515-00-00_00:00:00'
+    config_stop_time = '2515-01-01_00:00:00'
     config_calendar_type = 'gregorian_noleap'
 /
 &io
