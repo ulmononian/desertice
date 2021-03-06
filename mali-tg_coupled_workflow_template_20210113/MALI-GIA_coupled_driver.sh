@@ -1,12 +1,12 @@
 #!/bin/bash -l
 
-##SBATCH --qos=debug
-#SBATCH --qos=regular
+#SBATCH --qos=debug
+##SBATCH --qos=regular
 ##SBATCH --qos=premium
 #SBATCH --constraint=knl
-#SBATCH -t 12:00:00
+#SBATCH -t 00:30:00
 #SBATCH -J TG1km
-#SBATCH -N 5
+#SBATCH -N 3
 #SBATCH --tasks-per-node=68
 #SBATCH -A m1795
 
@@ -32,14 +32,15 @@
 # ===================
 # Set these locations and vars
 GIAPATH=.
-MALI=./landice_model_intel_20210115
+MALI=./landice_model_intel_knl_20210305
 MALI_INPUT=Thwaites_1to8km_r02_20210119.nc
 MALI_OUTPUT=output-cpl.nc
 MALI_NL=namelist.landice
 MALI_STREAMS=streams.landice
 START_YEAR=2015
-RUN_DURATION=300
+RUN_DURATION=20
 CPL_DT=1.0
+nCORES=204
 
 RESTART_SCRIPT=0 # should be 0 or 1
 # ==================
@@ -118,8 +119,7 @@ for i in $(seq $start_ind $END_ITER); do
    # First run MALI
    echo "Starting MALI at time:"
    date
-   #time srun -n 68 --cpu-bind=cores --hint=nomultithread $MALI
-   time srun -n 340 --cpu-bind=cores --hint=nomultithread $MALI    
+   time srun -n $nCORES --cpu-bind=cores --hint=nomultithread $MALI
    echo "Finished MALI at time:"
    date
 
