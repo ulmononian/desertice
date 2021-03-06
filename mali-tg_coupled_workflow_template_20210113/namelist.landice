@@ -55,9 +55,9 @@
     config_adaptive_timestep_force_interval = '0001-00-00_00:00:00'
 /
 &time_management
-    config_do_restart = .true.
+    config_do_restart = .false.
     config_restart_timestamp_name = 'restart_timestamp'
-    config_start_time = 'file'
+    config_start_time = '2015-01-01_00:00:00'
     config_run_duration = '0001-00-00_00:00:00'
     config_calendar_type = 'gregorian_noleap'
 /
@@ -66,7 +66,7 @@
     config_write_stats_on_startup = .false.
     config_stats_cell_ID = 1
     config_write_output_on_startup = .true.
-    config_pio_num_iotasks = 10
+    config_pio_num_iotasks = 6
     config_pio_stride = 34
     config_year_digits = 4
     config_output_external_velocity_solver_data = .false.
