@@ -44,7 +44,7 @@
 <stream name="ismip6_ocean_params" 
 	type="input"
         mode="forward;analysis"
-        filename_template="/global/project/projectdirs/piscees/MALI_projects/Thwaites_GIA/ismip6_forcing/ismip6_basins_gamma0_deltaT_nonlocal_median_PIGL_Thwaites1km.nc"
+        filename_template="/global/project/projectdirs/piscees/MALI_projects/Thwaites_GIA/ismip6_forcing/ismip6_basins_gamma0_deltaT_nonlocal_median_Thwaites1km.nc"
         input_interval="initial_only"
         runtime_format="single_file">
         <var name="ismip6shelfMelt_deltaT"/>
