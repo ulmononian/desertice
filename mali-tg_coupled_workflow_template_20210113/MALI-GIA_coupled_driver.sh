@@ -1,12 +1,12 @@
 #!/bin/bash -l
 
-#SBATCH --qos=debug
-##SBATCH --qos=regular
+##SBATCH --qos=debug
+#SBATCH --qos=regular
 ##SBATCH --qos=premium
 #SBATCH --constraint=knl
-#SBATCH -t 00:30:00
+#SBATCH -t 04:00:00
 #SBATCH -J TG1km
-#SBATCH -N 3
+#SBATCH -N 5
 #SBATCH --tasks-per-node=68
 #SBATCH -A m1795
 
@@ -38,9 +38,9 @@ MALI_OUTPUT=output-cpl.nc
 MALI_NL=namelist.landice
 MALI_STREAMS=streams.landice
 START_YEAR=2015
-RUN_DURATION=20
+RUN_DURATION=300
 CPL_DT=1.0
-nCORES=204
+nCORES=340
 
 RESTART_SCRIPT=0 # should be 0 or 1
 # ==================

@@ -66,7 +66,7 @@
     config_write_stats_on_startup = .false.
     config_stats_cell_ID = 1
     config_write_output_on_startup = .true.
-    config_pio_num_iotasks = 6
+    config_pio_num_iotasks = 10
     config_pio_stride = 34
     config_year_digits = 4
     config_output_external_velocity_solver_data = .false.
