@@ -78,7 +78,7 @@ class TopgFluxBase(object):
     def __init__(self, xg, yg, drctry, pbasename, gbasename, tmax, dt, ekwargs,
                     U0=None, taf0=None, driver=None, rate=False, fixeddt=True,
                     read='amrread', skip=1, fac=2, nwrite=10,
-                    include_elastic=False, maliForcing=None):
+                    include_elastic=False, include_ocean=False, maliForcing=None):
 
         # Grid and FFT properties
         self.xg = xg
@@ -143,6 +143,7 @@ class TopgFluxBase(object):
         self.fixeddt = fixeddt
         self.skip = skip
         self.include_elastic = include_elastic
+        self.include_ocean = include_ocean
 
         # Miscellanious properties
         self.drctry = drctry
@@ -199,6 +200,13 @@ class TopgFluxBase(object):
 
     def _update_Udot(self):
         raise NotImplementedError
+
+    def compute_load(self, thk, bas)
+        load = thickness_above_floating(thk, bas, self.rho_i/self.rho_w)*self.rho_i
+        if self.include_ocean:
+            load += (-bas)*(bas<0)*self.rho_w
+        load *= self.g
+        return load
 
     def fft2andpad(self, arr):
         shape = (self.ny*self.fac, self.nx*self.fac)
@@ -321,8 +329,7 @@ class BuelerTopgFlux(TopgFluxBase):
                thk0, bas0 = self.read(self.pfname.format(0))
 
 
-            self.taf0hat = self.fft2andpad(thickness_above_floating(thk0,bas0,
-                                                        self.rho_i/self.rho_w))
+            self.taf0hat = self.fft2andpad(self.compute_load(thk0,bas0))
             self.bas0hat = self.fft2andpad(bas0)
 
         if self.fixeddt:
@@ -344,8 +351,7 @@ class BuelerTopgFlux(TopgFluxBase):
         basn = bas_Start + (((bas_End - bas_Start) / nt) * (t+1))
 
 
-        dLhat = (self.fft2andpad(thickness_above_floating(thkn,basn,self.rho_i/self.rho_w)) -
-                                                    self.taf0hat)*self.rho_i*self.g
+        dLhat = self.fft2andpad(self.compute_load(thkn,basn)) - self.taf0hat
 
         self._Udot_from_dLhat(dLhat)
 
@@ -447,10 +453,6 @@ def thickness_above_floating(thk, bas, beta=0.9):
     #   Segment over ocean, checks for flotation    Over land
     taf = (beta*thk+bas)*(beta*thk>-bas)*(bas<0) + beta*thk*(bas>=0)
     return taf
-
-# TO BE IMPLEMENTED
-#def ocean_load(thk, bas):
-#    wl = -bas*(bas<0)
 
 # BISICLES HELPER FUNCTIONS
 def extract_field(amrID, field='thickness', level=0, order=0, returnxy=False):
