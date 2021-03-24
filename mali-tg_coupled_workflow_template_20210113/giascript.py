@@ -201,7 +201,7 @@ class TopgFluxBase(object):
     def _update_Udot(self):
         raise NotImplementedError
 
-    def compute_load(self, thk, bas)
+    def compute_load(self, thk, bas):
         load = thickness_above_floating(thk, bas, self.rho_i/self.rho_w)*self.rho_i
         if self.include_ocean:
             load += (-bas)*(bas<0)*self.rho_w
