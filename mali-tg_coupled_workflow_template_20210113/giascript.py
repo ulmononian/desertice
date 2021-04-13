@@ -65,7 +65,7 @@ class TopgFluxBase(object):
                 at simulation start (default None, begins in equilbrium)
     taf0    :   2D ndarray with size (len(yg), len(xg)) of the initial load 
                 (default None, begins with no load)
-    dLhatold:   2D ndarray of size (fac*len(yg), fac*len(xg)) of the previous steps
+    dLold   :   2D ndarray of size (len(yg), len(xg)) of the previous steps
                 (default None, no previous step)
     driver  :   BISICLES driver, needed for flattening AMR data
     rate    :   Return uplift velocity (deprecated)
@@ -80,7 +80,7 @@ class TopgFluxBase(object):
 
     """
     def __init__(self, xg, yg, drctry, pbasename, gbasename, tmax, dt, ekwargs,
-                    U0=None, taf0=None, dLharold=None, driver=None, rate=False, 
+                    U0=None, taf0=None, dLold=None, driver=None, rate=False, 
                     fixeddt=True, read='amrread', skip=1, fac=2, nwrite=10,
                     include_elastic=False, include_ocean=False, maliForcing=None):
 
@@ -155,7 +155,7 @@ class TopgFluxBase(object):
         self.pfname = self.drctry+pbasename
         self.U0 = U0
         self.taf0 = taf0
-        self.dLhatold = dLhatold
+        self.dLold = dLold
         self.DRIVER = driver
         self.rate = rate
         self.nwrite = nwrite
@@ -318,8 +318,9 @@ class BuelerTopgFlux(TopgFluxBase):
 
         self.uedotold = 0.
         
-        if self.dLhatold is not None:
-            assert self.dLhatold.shape == self.dLhat.shape, "dLhatold has the wrong shape"
+        if self.dLold is not None:
+            self.dLhatold = self.ff2andpad(self.dLold)
+            del self.dLold
         else:
             self.dLhatold = 0.
 
