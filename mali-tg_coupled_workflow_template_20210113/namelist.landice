@@ -5,7 +5,7 @@
     config_do_velocity_reconstruction_for_external_dycore = .false.
     config_simple_velocity_type = 'uniform'
     config_use_glp = .false.
-    config_nonconvergence_error = .true.
+    config_nonconvergence_error = .false.
 /
 &advection
     config_thickness_advection = 'fo'
