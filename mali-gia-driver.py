@@ -8,6 +8,7 @@ import sys, os
 import netCDF4
 import numpy as np
 import argparse
+import configparser
 # add path to giascript.py
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 import giascript
@@ -63,10 +64,15 @@ assert nt*dt==T, "dt does not divide evenly into duration."
 
 print("Using dt = {} years".format(dt))
 
-ekwargs = {'u2'  :  1.e18,
-           'u1'  :  1.e19,
-           'h'   :  200000.,
-           'D'   :  4.94e22}
+config = configparser.ConfigParser()
+config.read('rheo.ini')
+
+ekwargs = {'u2'  :  float(config['ekwargs']['u2']),
+           'u1'  :  float(config['ekwargs']['u1']),
+           'h'   :  float(config['ekwargs']['h']),
+           'D'   :  float(config['ekwargs']['D'])}
+
+print("Using the following rheology parameters: u2 = {}, u1 = {}, h = {}, D = {}.".format(config['ekwargs']['u2'], config['ekwargs']['u1'], config['ekwargs']['h'], config['ekwargs']['D']))
 
 maliForcing = giascript.maliForcing(thk_Start, bas_Start, thk_End, bas_End, nt)
 buelerflux = giascript.BuelerTopgFlux(x_data, y_data, './', options.inputFile, 'blah', nt, dt, ekwargs, fac=2, read='netcdf_read', U0=Uhatn_restart, taf0=taf0hat_restart, dLold=dLold, maliForcing=maliForcing)
