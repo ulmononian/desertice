@@ -31,12 +31,14 @@ if maliRestart:
     # TODO: check size matches size used below
     Uhatn_restart = fr.variables['Uhatn'][:]
     taf0hat_restart = fr.variables['taf0hat'][:]
+    dLold_restart = fr.variables['dLold'][:]
     thk_Start = fr.variables['thk_Start'][:]
     bas_Start = fr.variables['bas_Start'][:]
     fr.close()
 else:
     Uhatn_restart = None
     taf0hat_restart = None
+    dLold_restart = None
     ic = netCDF4.Dataset(options.initialConditionFile, 'r')
     thk_Start = ic.variables['thk'][:]
     bas_Start = ic.variables['bas'][:]  # open special init cond file for original thk_start and bas_start
@@ -73,7 +75,7 @@ ekwargs = {'u2'  :  float(config['ekwargs']['u2']),
 print("Using the following rheology parameters: u2 = {}, u1 = {}, h = {}, D = {}.".format(config['ekwargs']['u2'], config['ekwargs']['u1'], config['ekwargs']['h'], config['ekwargs']['D']))
 
 maliForcing = giascript.maliForcing(thk_Start, bas_Start, thk_End, bas_End, nt)
-buelerflux = giascript.BuelerTopgFlux(x_data, y_data, './', options.inputFile, 'blah', nt, dt, ekwargs, fac=2, read='netcdf_read', U0=Uhatn_restart, taf0=taf0hat_restart, include_ocean=True, maliForcing=maliForcing)
+buelerflux = giascript.BuelerTopgFlux(x_data, y_data, './', options.inputFile, 'blah', nt, dt, ekwargs, fac=2, read='netcdf_read', U0=Uhatn_restart, taf0=taf0hat_restart, dLold=dLold, maliForcing=maliForcing)
 
 # create a new GIA output file
 fout = netCDF4.Dataset("uplift_GIA.nc", "w")
@@ -112,6 +114,8 @@ Uhatn_restartVar = fout.createVariable('Uhatn', 'f', ('y','x'))
 Uhatn_restartVar[:] = buelerflux.ifft2andcrop(buelerflux.Uhatn)
 taf0hat_restartVar = fout.createVariable('taf0hat', 'f', ('y','x'))
 taf0hat_restartVar[:] = buelerflux.ifft2andcrop(buelerflux.taf0hat)
+dLold_restartVar = fout.createVariable('dLold', 'f', ('y','x'))
+dLold_restartVar[:] = buelerflux.ifft2andcrop(buelerflux.dLhatold)
 thk_Start = fout.createVariable('thk_Start', 'f', ('y','x'))
 thk_Start[:] = thk_End
 bas_Start = fout.createVariable('bas_Start', 'f', ('y','x'))
