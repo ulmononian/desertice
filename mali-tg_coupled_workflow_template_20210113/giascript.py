@@ -319,7 +319,7 @@ class BuelerTopgFlux(TopgFluxBase):
         self.uedotold = 0.
         
         if self.dLold is not None:
-            self.dLhatold = self.ff2andpad(self.dLold)
+            self.dLhatold = self.fft2andpad(self.dLold)
             del self.dLold
         else:
             self.dLhatold = 0.
