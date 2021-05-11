@@ -77,7 +77,8 @@ if config.has_option('ekwargs', 'u1'):
    ekwargs['u1'] = float(config['ekwargs']['u1'])
 if config.has_option('ekwargs', 'u'):
    ekwargs['u'] = float(config['ekwargs']['u'])
-ekwargs['h']  = float(config['ekwargs']['h'])
+if config.has_option('ekwargs', 'h'):
+   ekwargs['h']  = float(config['ekwargs']['h'])
 ekwargs['D']  = float(config['ekwargs']['D'])
 
 if ('u' in ekwargs and 'u2' in ekwargs) or ('u' in ekwargs and 'u1' in ekwargs):
@@ -85,6 +86,9 @@ if ('u' in ekwargs and 'u2' in ekwargs) or ('u' in ekwargs and 'u1' in ekwargs):
 
 if ('u1' in ekwargs and not 'u2' in ekwargs) or ('u2' in ekwargs and not 'u1' in ekwargs):
    sys.exit("Error: If you specify one of u1 and u2, you need to specify the other")
+
+if 'u' in ekwargs and 'h' in ekwargs:
+   sys.exit("Error: If you use a single layer viscosity (i.e. specify u instead of u1,u2), you should not include h.")
 
 print("Using the following rheology parameters:", ekwargs)
 
