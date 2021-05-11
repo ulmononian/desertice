@@ -65,14 +65,28 @@ assert nt*dt==T, "dt does not divide evenly into duration."
 print("Using dt = {} years".format(dt))
 
 config = configparser.ConfigParser()
+# Read config file
 config.read('rheo.ini')
 
-ekwargs = {'u2'  :  float(config['ekwargs']['u2']),
-           'u1'  :  float(config['ekwargs']['u1']),
-           'h'   :  float(config['ekwargs']['h']),
-           'D'   :  float(config['ekwargs']['D'])}
+ekwargs = {}
+if config.has_option('ekwargs', 'u2'):
+   ekwargs['u2'] = float(config['ekwargs']['u2'])
+else:
+   ekwargs['u2'] = None
+if config.has_option('ekwargs', 'u1'):
+   ekwargs['u1'] = float(config['ekwargs']['u1'])
+if config.has_option('ekwargs', 'u'):
+   ekwargs['u'] = float(config['ekwargs']['u'])
+ekwargs['h']  = float(config['ekwargs']['h'])
+ekwargs['D']  = float(config['ekwargs']['D'])
 
-print("Using the following rheology parameters: u2 = {}, u1 = {}, h = {}, D = {}.".format(config['ekwargs']['u2'], config['ekwargs']['u1'], config['ekwargs']['h'], config['ekwargs']['D']))
+if ('u' in ekwargs and 'u2' in ekwargs) or ('u' in ekwargs and 'u1' in ekwargs):
+   sys.exit("Error: If you specify u, you cannot specify u1 or u2")
+
+if ('u1' in ekwargs and not 'u2' in ekwargs) or ('u2' in ekwargs and not 'u1' in ekwargs):
+   sys.exit("Error: If you specify one of u1 and u2, you need to specify the other")
+
+print("Using the following rheology parameters:", ekwargs)
 
 maliForcing = giascript.maliForcing(thk_Start, bas_Start, thk_End, bas_End, nt)
 buelerflux = giascript.BuelerTopgFlux(x_data, y_data, './', options.inputFile, 'blah', nt, dt, ekwargs, fac=2, read='netcdf_read', U0=Uhatn_restart, taf0=taf0hat_restart, dLold=dLold_restart, include_ocean=True, maliForcing=maliForcing)
