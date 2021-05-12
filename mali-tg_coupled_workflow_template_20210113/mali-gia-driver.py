@@ -71,8 +71,6 @@ config.read('rheo.ini')
 ekwargs = {}
 if config.has_option('ekwargs', 'u2'):
    ekwargs['u2'] = float(config['ekwargs']['u2'])
-else:
-   ekwargs['u2'] = None
 if config.has_option('ekwargs', 'u1'):
    ekwargs['u1'] = float(config['ekwargs']['u1'])
 if config.has_option('ekwargs', 'u'):
