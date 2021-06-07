@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
 parser.description = __doc__
 parser.add_argument("-r", dest="restart", action='store_true', help="Indicates the GIA model is to be restarted from a previous run.")
 parser.add_argument("-i", "--input", dest="inputFile", help="name of ice load time-series input file", default="iceload.nc", metavar="FILENAME")
-parser.add_argument("-t", "--timestep", dest="timeStep", help="timestep to be used by GIA model in years", default="0.01", type=float, metavar="DT")
+parser.add_argument("-t", "--timestep", dest="timeStep", help="timestep to be used by GIA model in years", default="0.1", type=float, metavar="DT")
 parser.add_argument("-d", "--Duration", dest="Duration", help="run duration to be used by GIA model in years", default="1.0", type=float, metavar="T")
 parser.add_argument("-ic", "--initialCondition", dest="initialConditionFile", help="name of thk, bas initial condition file", default="initial_condition.nc", metavar="FILENAME")
 
@@ -91,7 +91,7 @@ if 'u' in ekwargs and 'h' in ekwargs:
 print("Using the following rheology parameters:", ekwargs)
 
 maliForcing = giascript.maliForcing(thk_Start, bas_Start, thk_End, bas_End, nt)
-buelerflux = giascript.BuelerTopgFlux(x_data, y_data, './', options.inputFile, 'blah', nt, dt, ekwargs, fac=2, read='netcdf_read', U0=Uhatn_restart, taf0=taf0hat_restart, dLold=dLold_restart, include_ocean=True, maliForcing=maliForcing)
+buelerflux = giascript.BuelerTopgFlux(x_data, y_data, './', options.inputFile, 'blah', nt, dt, ekwargs, fac=3, read='netcdf_read', U0=Uhatn_restart, taf0=taf0hat_restart, dLold=dLold_restart, include_ocean=True, maliForcing=maliForcing)
 
 # create a new GIA output file
 fout = netCDF4.Dataset("uplift_GIA.nc", "w")

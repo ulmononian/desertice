@@ -43,14 +43,15 @@ print ("")
 
 # Calculate dimensions
 #  make gia grid slightly larger than MALI grid, and round to the nearest km
-xmin = np.floor(xCell.min()/1000.0)*1000.0
-width = (xCell.max() - xmin)
+bufSize=0.2e6  # buffer size in m to place around MALI grid.
+xmin = np.floor(xCell.min()/1000.0)*1000.0 - bufSize
+width = (xCell.max() - xmin) + 2.0 * bufSize
 nx = int(np.ceil(width / options.resolution)) + 1
 print ("nx={}".format(nx))
 x = np.linspace(xmin, xmin + (nx-1) * options.resolution, nx)
 
-ymin = np.floor(yCell.min()/1000.0)*1000.0
-height = yCell.max() - ymin
+ymin = np.floor(yCell.min()/1000.0)*1000.0 - bufSize
+height = yCell.max() - ymin + 2.0 * bufSize
 ny = int(np.ceil(height / options.resolution)) + 1
 print ("ny={}".format(ny))
 y = np.linspace(ymin, ymin + (ny-1) * options.resolution, ny)
