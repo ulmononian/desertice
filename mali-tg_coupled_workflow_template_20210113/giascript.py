@@ -82,7 +82,8 @@ class TopgFluxBase(object):
     def __init__(self, xg, yg, drctry, pbasename, gbasename, tmax, dt, ekwargs,
                     U0=None, taf0=None, dLold=None, driver=None, rate=False, 
                     fixeddt=True, read='amrread', skip=1, fac=2, nwrite=10,
-                    include_elastic=False, include_ocean=False, maliForcing=None):
+                    include_viscous=True, include_elastic=False, include_ocean=False,
+                    maliForcing=None):
 
         # Grid and FFT properties
         self.xg = xg
@@ -146,6 +147,7 @@ class TopgFluxBase(object):
         self.dt = dt                                    # yrs
         self.fixeddt = fixeddt
         self.skip = skip
+        self.include_viscous = include_viscous
         self.include_elastic = include_elastic
         self.include_ocean = include_ocean
 
@@ -379,10 +381,12 @@ class BuelerTopgFlux(TopgFluxBase):
         NOTE: dLhat should be the stress associated with the thickness above
         flotation of the ice, TAF. dLhat = FFT(TAF*den_ice*g)
         """
-        # Bueler, et al. 2007 eq 11
-        Uhatdot = -self.gamma*(dLhat + self.beta*self.Uhatn)*_SECSPERYEAR    # m / yr
-        # Update uplift field prior to including elastic effect, so that fluid
-        # equilibrium is corrct.
+        Uhatdot = 0.
+        if self.include_viscous:
+            # Bueler, et al. 2007 eq 11
+            Uhatdot += -self.gamma*(dLhat + self.beta*self.Uhatn)*_SECSPERYEAR    # m / yr
+            # Update uplift field prior to including elastic effect, so that fluid
+            # equilibrium is corrct.
 
         self.Uhatn = self.Uhatn + Uhatdot*self.dt
         # self.Uhatn += Uhatdot*self.dt
