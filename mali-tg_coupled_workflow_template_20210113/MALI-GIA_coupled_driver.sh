@@ -190,7 +190,7 @@ for i in $(seq $start_ind $END_ITER); do
 
    echo "Finished iteration $i"
 
-   mid_iter=$i
+   mid_iter=$((i + 1))  # make the value we save be the iter we want to START ON (not the previous one finished)
    echo $mid_iter>coupler_restart.txt
 
 done;
