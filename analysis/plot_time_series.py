@@ -5,7 +5,9 @@ Script to plot various time series for Thwaites GIA experiments
 
 import sys
 import os
+import glob
 import netCDF4
+import xarray as xr
 import datetime
 import numpy as np
 import matplotlib.pyplot as plt
@@ -22,7 +24,8 @@ ctrl = {
   "u1" : 0.0,
   "UMthk" : 0.0,
   "LT" : 0.0,
-  "D" : 0.0
+  "D" : 0.0,
+  "color" : "black"
   }
 
 N1 = {
@@ -34,7 +37,8 @@ N1 = {
   "u1" : 4.0e21,
   "UMthk" : 670.0,
   "LT" : 60.0,
-  "D" : 13.0e23
+  "D" : 13.0e23,
+  "color" : 'firebrick'
  }
 
 N2 = {
@@ -46,7 +50,8 @@ N2 = {
   "u1" : 2.0e19,
   "UMthk" : 200.0,
   "LT" : 60.0,
-  "D" : 13.0e23
+  "D" : 13.0e23,
+  "color" : 'tab:orange' 
  }
 
 N3 = {
@@ -58,7 +63,8 @@ N3 = {
   "u1" : 1.0e18,
   "UMthk" : 0.0,
   "LT" : 25.0,
-  "D" : 1.0e23
+  "D" : 1.0e23,
+  "color" : 'gold'
  }
 
 N4 = {
@@ -70,7 +76,8 @@ N4 = {
   "u1" : 1.0e18,
   "UMthk" : 0.0,
   "LT" : 60.0,
-  "D" : 13.0e23
+  "D" : 13.0e23,
+  "color" : 'yellowgreen'
  }
 
 runs = [ctrl, N1, N2, N3, N4]
@@ -106,7 +113,15 @@ class modelRun:
       run = dictionary describing the run
       '''
       self.info = run
-      f = netCDF4.Dataset(self.info['path'] + '/' + 'globalStats.nc', 'r')
+      self.gs = globalStats(run)
+      self.out = outputData(run)
+
+class globalStats:
+   def __init__(self, run):
+      # --------
+      # Analysis from global stats file
+      # --------
+      f = netCDF4.Dataset(run['path'] + '/' + 'globalStats.nc', 'r')
       self.nt = len(f.dimensions['Time'])
       self.yrs = np.zeros((self.nt,))
       #yrs = f.variables['daysSinceStart'][:] / 365.0
@@ -117,6 +132,27 @@ class modelRun:
       #self.dyrs = self.yrs[1:] - self.yrs[0:-1]
       self.VAF = f.variables['volumeAboveFloatation'][:] / 1.0e12 * rhoi
 
+
+class outputData:
+   def __init__(self, run):
+      # --------
+      # Analysis from output file
+      # --------
+      DS = xr.open_mfdataset(run['path'] + '/' + 'output_2*.nc', combine='nested', concat_dim='Time', decode_timedelta=False, chunks={"Time": 20})
+      self.yrs = DS['daysSinceStart'].load() / 365.0 + 2015.0
+      self.nt = DS.dims['Time']
+
+      # volume
+
+      # uplift
+      bed = DS['bedTopography']
+      bed0 = bed[0,:]
+      cellMask = DS['cellMask']
+      self.maxUplift = np.zeros((self.nt,))
+      self.maxGrdUplift = np.zeros((self.nt,))
+      for t in range(self.nt):
+         self.maxUplift[t] = (bed[t]-bed0).max()
+         self.maxGrdUplift[t] = ((bed[t]-bed0)*( ((cellMask[t]&32)//32) & ~((cellMask[t]&4)//4))).max()
 
 
 # execute analysis on each run and build output
@@ -129,16 +165,18 @@ for run in runs:
    run['data'] = modelRun(run)
 
 
+# --------
 # VAF figure
+# --------
 fig = plt.figure(1, facecolor='w')
 axVAF = fig.add_subplot(1, 1, 1)
 
 for run in runs:
     print("Plotting run: " + run['name'])
-    yrs = run['data'].yrs
-    VAF = run['data'].VAF
+    yrs = run['data'].gs.yrs
+    VAF = run['data'].gs.VAF
 
-    axVAF.plot(yrs, VAF, label = run['name'])
+    axVAF.plot(yrs, VAF, label = run['name'], color=run['color'])
 
 axVAF.legend(loc='best', ncol=1)
 axVAF.set_xlabel('Year')
@@ -152,5 +190,27 @@ axSLR.set_ylim(GTtoSL(y1) - GTtoSL(VAF[0]), GTtoSL(y2) - GTtoSL(VAF[0]))
 axSLR.set_ylabel('S.L. equiv. (mm)')
 axSLR.set_xlim(x1, x2)
 
+
+# --------
+# uplift time series figure
+# --------
+fig = plt.figure('up', facecolor='w')
+axUp = fig.add_subplot(1, 1, 1)
+for run in runs:
+    print("Plotting run: " + run['name'])
+    yrs = run['data'].out.yrs
+    maxUplift = run['data'].out.maxUplift
+    maxGrdUplift = run['data'].out.maxGrdUplift
+
+    axUp.plot(yrs, maxUplift, label = run['name'], color=run['color'])
+    axUp.plot(yrs, maxGrdUplift, '--', color=run['color'])
+
+axUp.legend(loc='best', ncol=1)
+axUp.set_xlabel('Year')
+axUp.set_ylabel('Uplift (m)')
+
+
+
+# --------
 plt.show()
 
