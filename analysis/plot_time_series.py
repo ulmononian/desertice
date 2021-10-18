@@ -84,6 +84,7 @@ runs = [ctrl, N1, N2, N3, N4]
 
 # constants
 rhoi = 910.0
+rhow = 1028.0
 
 def xtime2numtimeMy(xtime):
   """Define a function to convert xtime character array to numeric time values using local arithmetic"""
@@ -104,6 +105,8 @@ def GTtoSL(GT):
    #return (GT-VAF[0])*1.0e12/1028.0/1000.0**3/362.0e6*1000.0*1000.0
    return GT *1.0e12/1028.0/1000.0**3/362.0e6*1000.0*1000.0 * -1.0
 
+def grounded(cellMask):
+   return ((cellMask&32)//32) & ~((cellMask&4)//4)
 
 # Define Run class for all std analyis
 class modelRun:
@@ -142,17 +145,26 @@ class outputData:
       self.yrs = DS['daysSinceStart'].load() / 365.0 + 2015.0
       self.nt = DS.dims['Time']
 
+      cellMask = DS['cellMask']
+      bed = DS['bedTopography']
+      thickness = DS['thickness']
+      areaCell = DS['areaCell']
+
       # volume
+      self.vol = np.zeros((self.nt,))
+      self.vaf = np.zeros((self.nt,))
+      for t in range(self.nt):
+         self.vol[t] = (thickness[t,:] * areaCell).sum()
+         self.vaf[t] = (areaCell * grounded(cellMask[t]) * 
+            ( thickness[t] + (rhow / rhoi) * np.minimum(0.0*bed[t], bed[t]) )).sum()
 
       # uplift
-      bed = DS['bedTopography']
       bed0 = bed[0,:]
-      cellMask = DS['cellMask']
       self.maxUplift = np.zeros((self.nt,))
       self.maxGrdUplift = np.zeros((self.nt,))
       for t in range(self.nt):
          self.maxUplift[t] = (bed[t]-bed0).max()
-         self.maxGrdUplift[t] = ((bed[t]-bed0)*( ((cellMask[t]&32)//32) & ~((cellMask[t]&4)//4))).max()
+         self.maxGrdUplift[t] = ((bed[t]-bed0) * grounded(cellMask[t])).max()
 
 
 # execute analysis on each run and build output
