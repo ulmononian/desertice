@@ -118,6 +118,7 @@ class modelRun:
       '''
       self.info = run
       self.gs = globalStats(run)
+      self.GIA = GIAoutputData(run)
       tic = time.perf_counter()
       #self.out = outputData(run)
       toc = time.perf_counter()
@@ -153,6 +154,53 @@ class globalStats:
 
       # Redo on resampled time axis
 
+class GIAoutputData:
+   def __init__(self, run):
+      # --------
+      if run['name'] == 'ctrl':
+         self.yrs = [0,]
+         self.upliftVol = [0,]
+      else:
+         f = netCDF4.Dataset(run['path'] + '/' + 'iceload_all.nc', 'r')
+         nt = len(f.dimensions['Time'])
+         self.yrs = np.arange(2015, 2015 + nt)
+   
+         x = f.variables['x'][:]
+         y = f.variables['y'][:]
+         dx = x[1] - x[0]
+         [XX, YY] = np.meshgrid(x, y)
+   
+         bed = f.variables['bas']
+         thk = f.variables['thk']
+   
+         self.upliftVol = np.zeros((nt,))
+         self.upliftOceanVol = np.zeros((nt,))
+         self.vaf = np.zeros((nt,))
+   
+         bed0 = bed[0,:,:]
+         thk0 = thk[0,:,:]
+   
+#         print(x.shape, y.shape, XX.shape, YY.shape, bed0.shape)
+         for t in range(nt):
+             bedt = bed[t,:,:]
+             thkt = thk[t,:,:]
+             self.upliftVol[t] = ((bedt - bed0) * dx**2).sum()
+
+             hf = np.maximum(np.zeros(thkt.shape), -1.0 * bedt * rhow / rhoi)
+             haf = np.maximum(np.zeros(thkt.shape), thkt - hf)
+             self.vaf[t] = (dx**2 * haf).sum()
+
+#             yrng = (YY>-520000.0)*(YY<-400000.0)
+             [ind1, ind2] = np.where( (haf>1.0) * (haf<100.0) * (YY>-520000.0) * (YY<-400000.0))
+#             if t % 100 == 0:
+#                plt.matshow((YY>-520000.0) * (YY<-400000.0) * (haf>1.0) * (haf<100.0)); plt.show()
+#             print(ind.shape, ind)
+             mnGLx = XX[ind1, ind2].mean()
+#             print("Time {}, mn GL x = {}".format(t, mnGLx))
+             ocnMask = np.logical_or( (thkt>hf),
+                                      (bed0 == 0.0) * (XX < mnGLx))  # outside TG domain and far enough grid-west
+             self.upliftOceanVol[t] = ((bedt - bed0) * dx**2 * ocnMask).sum()
+         f.close()
 
 
 class outputData:
@@ -328,6 +376,37 @@ axGrdThk.set_ylabel('Mean grounded ice thickness (m)')
 
 axGLf.set_xlabel('Grounded area loss (km$^2$)')
 axGLf.set_ylabel('Grounding line flux (Gt yr${^-1}$)')
+
+# --------
+# GIA grid uplift time series figure
+# --------
+fig = plt.figure('upGIA', facecolor='w')
+axUp = fig.add_subplot(1, 2, 1)
+axUp2 = fig.add_subplot(1, 2, 2)
+for run in runs:
+    if run['name'] == 'ctrl':
+        continue
+    print("Plotting run: " + run['name'])
+    yrs = run['data'].GIA.yrs
+    upliftVol = run['data'].GIA.upliftVol / (362.0e6 * 1000.0**2) * 1000.0 # mm
+    upliftOceanVol = run['data'].GIA.upliftOceanVol / (362.0e6 * 1000.0**2) * 1000.0 # mm
+    vaf = run['data'].GIA.vaf / (362.0e6 * 1000.0**2) * 1000.0 * rhoi/rhow # mm ocn
+    bary = vaf[0] - vaf
+
+    axUp.plot(yrs, upliftVol, label = run['name'], color=run['color'])
+    axUp.plot(yrs, upliftOceanVol, '--', label = run['name'], color=run['color'])
+
+
+    axUp2.plot(yrs, bary, '--', label = run['name'], color=run['color'])
+    axUp2.plot(yrs, bary + upliftOceanVol, '-', label = run['name'], color=run['color'])
+
+axUp.legend(loc='best', ncol=1)
+axUp.set_xlabel('Year')
+axUp.set_ylabel('Uplift volume (mm SLE)')
+
+axUp2.legend(loc='best', ncol=1)
+axUp2.set_xlabel('Year')
+axUp2.set_ylabel('Sea level rise equivalent (mm)')
 
 
 plt.show()
