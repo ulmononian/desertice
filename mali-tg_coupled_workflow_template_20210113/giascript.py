@@ -76,8 +76,11 @@ class TopgFluxBase(object):
     fac     :   Pad the FFT of load and response by this many times (default 1,
         suggested 2).
     nwrite  :   Write the uplift field every nwrite steps.
-    include_elastic :   Include elastic effects.
-
+    include_viscous :   Include viscous vertical land motion (default: True)
+    include_elastic :   Include elastic vertical land motion (default: False)
+    include_ocean   :   Include ocean load in addition to thickness above flotation
+                        (defualt: False)
+    maliForcing     :   Object of read-in values from MALI
     """
     def __init__(self, xg, yg, drctry, pbasename, gbasename, tmax, dt, ekwargs,
                     U0=None, taf0=None, dLold=None, driver=None, rate=False, 
@@ -381,7 +384,7 @@ class BuelerTopgFlux(TopgFluxBase):
         NOTE: dLhat should be the stress associated with the thickness above
         flotation of the ice, TAF. dLhat = FFT(TAF*den_ice*g)
         """
-        Uhatdot = 0.
+        Uhatdot = np.zeros_like(dLhat)
         if self.include_viscous:
             # Bueler, et al. 2007 eq 11
             Uhatdot += -self.gamma*(dLhat + self.beta*self.Uhatn)*_SECSPERYEAR    # m / yr
