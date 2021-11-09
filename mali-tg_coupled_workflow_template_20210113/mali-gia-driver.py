@@ -91,7 +91,7 @@ if 'u' in ekwargs and 'h' in ekwargs:
 print("Using the following rheology parameters:", ekwargs)
 
 maliForcing = giascript.maliForcing(thk_Start, bas_Start, thk_End, bas_End, nt)
-buelerflux = giascript.BuelerTopgFlux(x_data, y_data, './', options.inputFile, 'blah', nt, dt, ekwargs, fac=3, read='netcdf_read', U0=Uhatn_restart, taf0=taf0hat_restart, dLold=dLold_restart, include_ocean=True, maliForcing=maliForcing)
+buelerflux = giascript.BuelerTopgFlux(x_data, y_data, './', options.inputFile, 'blah', nt, dt, ekwargs, fac=3, read='netcdf_read', U0=Uhatn_restart, taf0=taf0hat_restart, dLold=dLold_restart, include_viscous=True, include_elastic=True, include_ocean=True, maliForcing=maliForcing)
 
 # create a new GIA output file
 fout = netCDF4.Dataset("uplift_GIA.nc", "w")
