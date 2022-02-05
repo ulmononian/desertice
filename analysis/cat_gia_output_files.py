@@ -1,4 +1,5 @@
 #!/usr/bin/bash
+source /global/common/software/e3sm/anaconda_envs/load_latest_e3sm_unified_cori-knl.sh
 
 # Run from iteration_archive dir
 
@@ -6,7 +7,7 @@
 
 export files1=""
 export files2=""
-for d in `ls -1v`
+for d in `ls -1vd */`
 do
 echo $d
 export files1="$files1 ${d}/iceload.nc "
@@ -15,7 +16,7 @@ export files2="$files2 ${d}/uplift_GIA.nc "
 done
 
 echo $files1
-#ncrcat $files1 iceload_all.nc
+ncrcat $files1 iceload_all.nc
 # I had to manually run the command after pasting the echo output.  Not sure why.
 
 
