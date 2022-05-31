@@ -15,7 +15,7 @@ from matplotlib import cm
 import time
 
 doGIAfiles = True
-#doGIAfiles = False
+doGIAfiles = False
 
 doUpliftTS = False
 
@@ -26,13 +26,14 @@ ctrl = {
   "name" : "ctrl",
  "desc" : "control",
   "legname" : "CTRL",
-  "path" : "/global/project/projectdirs/piscees/MALI_projects/Thwaites_GIA/final_analysis/control",
+  "path" : "/global/cfs/cdirs/piscees/MALI_projects/Thwaites_GIA/final_analysis/control",
   "u2" : 0.0,
   "u1" : 0.0,
   "UMthk" : 0.0,
   "LT" : 0.0,
   "D" : 0.0,
-  "color" : "black"
+  "color" : "black",
+  "style" : "-"
   }
 
 N1 = {
@@ -40,13 +41,15 @@ N1 = {
  "desc" : "Typical",
   "legname" : "TYP",
 # "path" : "/global/cscratch1/sd/trhille/Thwaites_1km_GIA_ensemble/N1_01yr/",
- "path" : "/global/project/projectdirs/piscees/MALI_projects/Thwaites_GIA/final_analysis/with_elastic/N1",
+ "path" : "/global/cfs/cdirs/piscees/MALI_projects/Thwaites_GIA/final_analysis/with_elastic/N1",
   "u2" : 2.0e20,
   "u1" : 4.0e21,
   "UMthk" : 670.0,
   "LT" : 60.0,
   "D" : 13.0e23,
-  "color" : 'firebrick'
+  #"color" : 'firebrick'
+  "color" : 'gold',
+  "style" : "-"
  }
 
 N2 = {
@@ -54,13 +57,15 @@ N2 = {
  "desc" : "best2",
   "legname" : "BEST2",
 # "path" : "/global/cscratch1/sd/trhille/Thwaites_1km_GIA_ensemble/N2_01yr/",
- "path" : "/global/project/projectdirs/piscees/MALI_projects/Thwaites_GIA/final_analysis/with_elastic/N2",
+ "path" : "/global/cfs/cdirs/piscees/MALI_projects/Thwaites_GIA/final_analysis/with_elastic/N2",
   "u2" : 4.0e18,
   "u1" : 2.0e19,
   "UMthk" : 200.0,
   "LT" : 60.0,
   "D" : 13.0e23,
-  "color" : 'tab:orange' 
+  #"color" : 'tab:orange' 
+  "color" : 'tab:orange',
+  "style" : "-"
  }
 
 N3 = {
@@ -68,13 +73,15 @@ N3 = {
  "desc" : "LV-ThinLith",
   "legname" : "VLV-THIN",
 # "path" : "/global/cscratch1/sd/trhille/Thwaites_1km_GIA_ensemble/N3_1yr/",
- "path" : "/global/project/projectdirs/piscees/MALI_projects/Thwaites_GIA/final_analysis/with_elastic/N3",
+ "path" : "/global/cfs/cdirs/piscees/MALI_projects/Thwaites_GIA/final_analysis/with_elastic/N3",
   "u2" : 1.0e18,
   "u1" : 1.0e18,
   "UMthk" : 0.0,
   "LT" : 25.0,
   "D" : 1.0e23,
-  "color" : 'gold',
+  #"color" : 'gold',
+  "color" : 'darkviolet',
+  "style" : "-",
   "bad_uplift_ind" : np.arange(253, 265+1)
  }
 
@@ -83,13 +90,15 @@ N4 = {
  "desc" : "LV-StdLith",
   "legname" : "VLV",
 # "path" : "/global/cscratch1/sd/trhille/Thwaites_1km_GIA_ensemble/N4_1yr/",
- "path" : "/global/project/projectdirs/piscees/MALI_projects/Thwaites_GIA/final_analysis/with_elastic/N4",
+ "path" : "/global/cfs/cdirs/piscees/MALI_projects/Thwaites_GIA/final_analysis/with_elastic/N4",
   "u2" : 1.0e18,
   "u1" : 1.0e18,
   "UMthk" : 0.0,
   "LT" : 60.0,
   "D" : 13.0e23,
-  "color" : 'yellowgreen',
+  #"color" : 'yellowgreen',
+  "color" : 'firebrick',
+  "style" : "-",
   "bad_uplift_ind" : np.array([233, 234, 235])
  }
 
@@ -97,13 +106,14 @@ PIGLctrl = {
   "name" : "PIGLctrl",
  "desc" : "PIGLcontrol",
   "legname" : "HM-CTRL",
-  "path" : "/global/project/projectdirs/piscees/MALI_projects/Thwaites_GIA/final_analysis/PIGL_control",
+  "path" : "/global/cfs/cdirs/piscees/MALI_projects/Thwaites_GIA/final_analysis/PIGL_control",
   "u2" : 0.0,
   "u1" : 0.0,
   "UMthk" : 0.0,
   "LT" : 0.0,
   "D" : 0.0,
-  "color" : "gray"
+  "color" : "gray",
+  "style" : "-"
   }
 
 PIGLN3 = {
@@ -111,19 +121,21 @@ PIGLN3 = {
  "desc" : "PIGL-LV-ThinLith",
   "legname" : "HM-VLV-THIN",
 # "path" : "/global/cscratch1/sd/trhille/Thwaites_1km_GIA_ensemble/N3_1yr/",
- "path" : "/global/project/projectdirs/piscees/MALI_projects/Thwaites_GIA/final_analysis/with_elastic/PIGL_N3",
+ "path" : "/global/cfs/cdirs/piscees/MALI_projects/Thwaites_GIA/final_analysis/with_elastic/PIGL_N3",
   "u2" : 1.0e18,
   "u1" : 1.0e18,
   "UMthk" : 0.0,
   "LT" : 25.0,
   "D" : 1.0e23,
-  "color" : 'deepskyblue'
+  #"color" : 'deepskyblue'
+  "color" : 'plum',
+  "style" : "-"
  }
 
 
-runs = [ctrl, N1, N2, N4, N3]
-#runs = [ctrl, N1, N2] # testing faster
-#runs = [ctrl, PIGLctrl, N3, PIGLN3]; doGIAfiles = False
+runs = [ctrl, N1, N2, N4, N3]  # standard set of runs
+##runs = [ctrl, N1, N2] # testing faster
+#runs = [ctrl, PIGLctrl, N3, PIGLN3]; doGIAfiles = False  # melt comparison runs
 
 # constants
 rhoi = 910.0
@@ -186,6 +198,8 @@ class globalStats:
       self.melt = f.variables['totalFloatingBasalMassBal'][:] / -1.0e12 # Gt
       # Clean a few melt blips
       self.melt[self.melt>3000.0] = np.NAN
+      self.meltrate = f.variables['avgSubshelfMelt'][:]
+      self.meltrate[self.meltrate>500.0] = np.NAN
       self.GA = f.variables['groundedIceArea'][:] / 1000.0**2  # km^2
       self.GLflux = f.variables['groundingLineFlux'][:] / 1.0e12 # Gt/y
       self.GLflux[0] = np.NAN # remove the zero in the first time level
@@ -207,6 +221,10 @@ class globalStats:
       self.resampVAF = np.interp(self.resampYrs, self.yrs, self.VAF) # generate y values for each x
       self.resampVAFrate = (self.resampVAF[1:] - self.resampVAF[0:-1]) / (self.resampYrs[1:] - self.resampYrs[0:-1])
       self.resampVAFrate[self.resampVAFrate<6*self.resampVAFrate.mean()] = np.nan # remove some outliers
+      # remove more outliers
+      for i in range(len(self.resampVAFrate)):
+          if self.resampVAFrate[i] < 2.0 * self.resampVAFrate[i-20:i+20].mean():
+              self.resampVAFrate[i] = np.nan
 
 
       # calculate SLR reduction
@@ -395,22 +413,24 @@ for run in runs:
     yrs = run['data'].gs.yrs
     VAF = run['data'].gs.VAF
 
-    axVAF.plot(yrs, run['data'].gs.VAF, label = run['legname'], color=run['color'])
+    axVAF.plot(yrs, run['data'].gs.VAF, label = run['legname'], color=run['color'], linestyle=run['style'])
     #axGA.plot (yrs, run['data'].gs.GA, label = run['legname'], color=run['color'])
-    axMelt.plot(yrs, run['data'].gs.melt, label = run['legname'], color=run['color'])
+    axMelt.plot(yrs, run['data'].gs.melt, label = run['legname'], color=run['color'], linestyle=run['style'])
+    #axMelt.plot(yrs, run['data'].gs.meltrate, label = run['legname'], color=run['color'])
     if not run['name'] in  ('ctrl', 'PIGLctrl'):
-       axReduc.plot(run['data'].gs.resampYrs, run['data'].gs.reduction, label = run['legname'], color=run['color'])
-       axDelay.plot(run['data'].gs.timeOnVAFeven, run['data'].gs.delay, label = run['legname'], color=run['color'])
+       axReduc.plot(run['data'].gs.resampYrs, run['data'].gs.reduction, label = run['legname'], color=run['color'], linestyle=run['style'])
+       axDelay.plot(run['data'].gs.timeOnVAFeven, run['data'].gs.delay, label = run['legname'], color=run['color'], linestyle=run['style'])
     #axFloatThk.plot(yrs, run['data'].gs.floatThk, label = run['legname'], color=run['color'])
     #axGrdThk.plot(yrs, run['data'].gs.grdThk, label = run['legname'], color=run['color'])
-    axGLf.plot(yrs, run['data'].gs.GLflux, label = run['legname'], color=run['color'])
+    axGLf.plot(yrs, run['data'].gs.GLflux, label = run['legname'], color=run['color'], linestyle=run['style'])
     #axVAFrate.plot(yrs, run['data'].gs.VAFrate, label = run['legname'], color=run['color'])
-    axVAFrate.plot(run['data'].gs.resampYrs[:-1], run['data'].gs.resampVAFrate, label = run['legname'], color=run['color'])
+    axVAFrate.plot(run['data'].gs.resampYrs[:-1], run['data'].gs.resampVAFrate, label = run['legname'], color=run['color'], linestyle=run['style'])
 
 axVAF.legend(loc='best', ncol=1)
 #axVAF.set_xlabel('Year')
 axVAF.set_ylabel('VAF (Gt)')
-axVAF.tick_params(bottom=True, top=True, left=True, right=True)
+axVAF.tick_params(bottom=True, top=True, left=True, right=False)
+axVAF.grid(True)
 
 axSLR=axVAF.twinx()
 y1, y2=axVAF.get_ylim()
@@ -419,7 +439,7 @@ axSLR.set_ylim(GTtoSL(y1) - GTtoSL(VAF[0]), GTtoSL(y2) - GTtoSL(VAF[0]))
 #axSLR.set_yticks( range(int(GTtoSL(y1)), int(GTtoSL(y2))) )
 axSLR.set_ylabel('S.L. equiv. (mm)')
 axSLR.set_xlim(x1, x2)
-axSLR.tick_params(bottom=True, top=True, left=True, right=True)
+axSLR.tick_params(bottom=False, top=False, left=False, right=True)
 
 
 ##axGA.legend(loc='best', ncol=1)
@@ -431,14 +451,17 @@ axSLR.tick_params(bottom=True, top=True, left=True, right=True)
 axMelt.set_ylabel('Ice shelf melt\nrate (Gt yr${^-1}$)')
 #axMelt.set_ylim((0.0, 2000.0))
 axMelt.tick_params(bottom=True, top=True, left=True, right=True)
+axMelt.grid(True)
 
 #axReduc.set_xlabel('Year')
 axReduc.set_ylabel('Reduction in VAF loss\nfrom control (%)')
 axReduc.tick_params(bottom=True, top=True, left=True, right=True)
+axReduc.grid(True)
 
 axDelay.set_xlabel('Year')
 axDelay.set_ylabel('Delay in VAF loss\nfrom control (yr)')
 axDelay.tick_params(bottom=True, top=True, left=True, right=True)
+axDelay.grid(True)
 
 #axFloatThk.set_xlabel('Year')
 #axFloatThk.set_ylabel('Mean floating ice thickness (m)')
@@ -449,10 +472,12 @@ axDelay.tick_params(bottom=True, top=True, left=True, right=True)
 #axGLf.set_xlabel('Year')
 axGLf.set_ylabel('Grounding line\nflux (Gt yr${^-1}$)')
 axGLf.tick_params(bottom=True, top=True, left=True, right=True)
+axGLf.grid(True)
 
 #axVAFrate.set_xlabel('Year')
 axVAFrate.set_ylabel('VAF rate (Gt yr${^-1}$)')
 axVAFrate.tick_params(bottom=True, top=True, left=True, right=True)
+axVAFrate.grid(True)
 
 # -------
 # Bunch of stats vs GA
@@ -460,18 +485,18 @@ axVAFrate.tick_params(bottom=True, top=True, left=True, right=True)
 fig = plt.figure('vsGA', facecolor='w', figsize=(8, 14))
 nr = 6
 axVAF = fig.add_subplot(nr, 1, 1)
-axGA = fig.add_subplot(nr, 1, 2)
-axMelt = fig.add_subplot(nr, 1, 3)
-axFloatThk = fig.add_subplot(nr, 1, 6)
-axGrdThk = fig.add_subplot(nr, 1, 5)
-axGLf = fig.add_subplot(nr, 1, 4)
+#axGA = fig.add_subplot(nr, 1, 2)
+axMelt = fig.add_subplot(nr, 1, 2)
+axFloatThk = fig.add_subplot(nr, 1, 5)
+axGrdThk = fig.add_subplot(nr, 1, 4)
+axGLf = fig.add_subplot(nr, 1, 3)
 
 for run in runs:
     print("Plotting run: " + run['name'])
     GA = run['data'].gs.GAloss
 
     axVAF.plot(GA, run['data'].gs.VAF, label = run['legname'], color=run['color'])
-    axGA.plot (GA, run['data'].gs.GA, label = run['legname'], color=run['color'])
+    #axGA.plot (GA, run['data'].gs.GA, label = run['legname'], color=run['color'])
     axMelt.plot(GA, run['data'].gs.melt, label = run['legname'], color=run['color'])
     axFloatThk.plot(GA, run['data'].gs.floatThk, label = run['legname'], color=run['color'])
     axGrdThk.plot(GA, run['data'].gs.grdThk, label = run['legname'], color=run['color'])
@@ -494,13 +519,13 @@ axSLR.tick_params(bottom=True, top=True, left=True, right=True)
 
 #axGA.legend(loc='best', ncol=1)
 #axGA.set_xlabel('Grounded area loss (km$^2$)')
-axGA.set_ylabel('Grounded area\nloss (km$^2$)')
-axGA.tick_params(bottom=True, top=True, left=True, right=True)
+#axGA.set_ylabel('Grounded area (km$^2$)')
+#axGA.tick_params(bottom=True, top=True, left=True, right=True)
 
 #axMelt.set_xlabel('Grounded area loss (km$^2$)')
 axMelt.set_ylabel('Ice shelf melt\nrate (Gt yr${^-1}$)')
 axMelt.set_ylim((0.0, 2000.0))
-axGA.tick_params(bottom=True, top=True, left=True, right=True)
+axMelt.tick_params(bottom=True, top=True, left=True, right=True)
 
 axFloatThk.set_xlabel('Grounded area loss (km$^2$)')
 axFloatThk.set_ylabel('Mean floating\nice thickness (m)')
@@ -581,4 +606,5 @@ if doUpliftTS:
 
 # --------
 plt.show()
+#plt.savefig('TG_time_series.png', dpi=300)
 

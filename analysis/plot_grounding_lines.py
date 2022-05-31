@@ -42,7 +42,7 @@ timeLevs = [100, 250, 500]
 ctrl = {
   "name" : "ctrl",
  "desc" : "control",
-  "path" : "/global/project/projectdirs/piscees/MALI_projects/Thwaites_GIA/final_analysis/control",
+  "path" : "/global/cfs/cdirs/piscees/MALI_projects/Thwaites_GIA/final_analysis/control",
   "u2" : 0.0,
   "u1" : 0.0,
   "UMthk" : 0.0,
@@ -53,22 +53,20 @@ ctrl = {
 
 N1 = {
  "name" : "N1",
+ "path" : "/global/cfs/cdirs/piscees/MALI_projects/Thwaites_GIA/final_analysis/with_elastic/N1",
  "desc" : "Typical",
-# "path" : "/global/cscratch1/sd/trhille/Thwaites_1km_GIA_ensemble/N1_01yr/",
- "path" : "/global/project/projectdirs/piscees/MALI_projects/Thwaites_GIA/final_analysis/with_elastic/N1",
   "u2" : 2.0e20,
   "u1" : 4.0e21,
   "UMthk" : 670.0,
   "LT" : 60.0,
   "D" : 13.0e23,
-  "color" : 'firebrick'
+  "color" : 'gold'
  }
 
 N2 = {
  "name" : "N2",
  "desc" : "best2",
-# "path" : "/global/cscratch1/sd/trhille/Thwaites_1km_GIA_ensemble/N2_01yr/",
- "path" : "/global/project/projectdirs/piscees/MALI_projects/Thwaites_GIA/final_analysis/with_elastic/N2",
+ "path" : "/global/cfs/cdirs/piscees/MALI_projects/Thwaites_GIA/final_analysis/with_elastic/N2",
   "u2" : 4.0e18,
   "u1" : 2.0e19,
   "UMthk" : 200.0,
@@ -80,27 +78,25 @@ N2 = {
 N3 = {
  "name" : "N3",
  "desc" : "LV-ThinLith",
-# "path" : "/global/cscratch1/sd/trhille/Thwaites_1km_GIA_ensemble/N3_1yr/",
- "path" : "/global/project/projectdirs/piscees/MALI_projects/Thwaites_GIA/final_analysis/with_elastic/N3",
+ "path" : "/global/cfs/cdirs/piscees/MALI_projects/Thwaites_GIA/final_analysis/with_elastic/N3",
   "u2" : 1.0e18,
   "u1" : 1.0e18,
   "UMthk" : 0.0,
   "LT" : 25.0,
   "D" : 1.0e23,
-  "color" : 'gold'
+  "color" : 'darkviolet'
  }
 
 N4 = {
  "name" : "N4",
  "desc" : "LV-StdLith",
-# "path" : "/global/cscratch1/sd/trhille/Thwaites_1km_GIA_ensemble/N4_1yr/",
- "path" : "/global/project/projectdirs/piscees/MALI_projects/Thwaites_GIA/final_analysis/with_elastic/N4",
+ "path" : "/global/cfs/cdirs/piscees/MALI_projects/Thwaites_GIA/final_analysis/with_elastic/N4",
   "u2" : 1.0e18,
   "u1" : 1.0e18,
   "UMthk" : 0.0,
   "LT" : 60.0,
   "D" : 13.0e23,
-  "color" : 'yellowgreen'
+  "color" : 'firebrick'
  }
 
 runs = [ctrl, N1, N2, N3, N4]
@@ -166,50 +162,12 @@ for ax in axs.ravel():
 f.close()
 
 fig.subplots_adjust(right=0.8)
-cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+cbar_ax = fig.add_axes([0.9, 0.1, 0.04, 0.8])
 #bdPlt.set_clim(-2.0, 2.0)
 cbar = fig.colorbar(bdPlt, cax=cbar_ax)
 
 
-# Functions to simplify plotting
-def get_line_color(run):
-    if 'm5_' in run or 'm5/' in run:
-        lowCalving = 'VM180'
-        medCalving = 'VM170'
-        highCalving = 'VM160'
-    elif 'm7_' in run or 'm7/' in run:
-        if 'HadGEM2' in run or 'CNRM' in run:
-            lowCalving = 'VM190'
-            medCalving = 'VM180'
-            highCalving = 'VM170'
-        elif 'MIROC5' in run:
-            lowCalving = 'VM180'
-            medCalving = 'VM170'
-            highCalving = 'VM160'
-    
-    if '2017calvingFront' in run or 'calvingVelocityData' in run:
-        lineColor = 'tab:grey'
-    elif highCalving in run:
-        lineColor = 'tab:purple'
-    elif medCalving in run:
-        lineColor = 'tab:blue'
-    elif lowCalving in run:
-        lineColor = 'tab:cyan'
-    else:
-        lineColor = 'white'
-    
-    return lineColor
-
-def get_line_style(run):
-    if 'm5_' in run or 'm5/' in run:
-        lineStyle = 'solid'
-    elif 'm7_' in run or 'm7/' in run:
-        lineStyle = 'dashed'
-    else:
-        lineStyle = 'none'
-        
-    return lineStyle
-    
+   
 #Loop over runs
 for run in runs:
     DS = xr.open_mfdataset(run['path'] + '/' + 'output_2*.nc', combine='nested', concat_dim='Time', decode_timedelta=False, chunks={"Time": 10})
@@ -228,11 +186,15 @@ for run in runs:
         col = t
         axs[col].tricontour(triang, groundingLineMask[timeLev, :], 
            levels=[0.9999], colors=run['color'], linestyles='solid') #, label=run['name'])
+    if col == 0 :
+        axs[col].legend(loc='best', ncol=1)
+#plt.clim(-2000,0)
         
 
+# =============================
 # Plot uplift maps
 
-figU = plt.figure(2, facecolor='w', figsize=(12,12))
+figU = plt.figure(2, facecolor='w', figsize=(8,8))
 axsU = figU.subplots(2, 2)#, sharex=True, sharey=True)
 
 run = runs[2] # best2
@@ -249,28 +211,34 @@ bed = DS['bedTopography']
 groundingLineMask = (cellMask & groundingLineValue) // groundingLineValue
  
 #axsU[0,0].pcolormesh(x, y, bed[250,:,:]-bed[0,:,:])
-bdPlt=axsU[0,0].tricontourf(triang, bed[250,:]-bed[0,:], levels=100)
+data=bed[250,:]-bed[0,:]
+bdPlt=axsU[0,0].tricontourf(triang, data, levels=np.linspace(0.0, data.max(), num=300))
+tk=np.arange(0.0, data.max(), 10.0)
 #axsU[0,0].tricontour(triang, initialExtentMask[0,:]*0+1, colors='purple', levels=(0.5,))
 axsU[0,0].tricontour(triang, initialExtentMask[0,:], colors='white')
 axsU[0,0].tricontour(triang, groundingLineMask[0,:], colors='gray')
 axsU[0,0].tricontour(triang, groundingLineMask[250,:], colors='black')
-figU.colorbar(bdPlt, ax=axsU[0,0])
+figU.colorbar(bdPlt, ax=axsU[0,0], ticks=tk)
 axsU[0,0].set_xticks([])
 axsU[0,0].set_xticks([], minor=True)
 axsU[0,0].set_yticks([])
 axsU[0,0].set_yticks([], minor=True)
+axsU[0,0].annotate('a', (0.03, 0.95), xycoords='axes fraction', fontweight='bold', fontsize='large')
 
 #axsU[0,1].pcolormesh(x, y, bed[500,:,:]-bed[0,:,:])
 #axsU[0,0].tricontour(triang, initialExtentMask[0,:]*0+1, colors='purple', levels=(0.5,))
-bdPlt=axsU[0,1].tricontourf(triang, bed[500,:]-bed[0,:], levels=100)
+data=bed[500,:]-bed[0,:]
+bdPlt=axsU[0,1].tricontourf(triang, data, levels=np.linspace(0.0, data.max(), num=300))
 axsU[0,1].tricontour(triang, initialExtentMask[0,:], colors='white')
 axsU[0,1].tricontour(triang, groundingLineMask[0,:], colors='gray')
 axsU[0,1].tricontour(triang, groundingLineMask[500,:], colors='black')
-figU.colorbar(bdPlt, ax=axsU[0,1])
+tk=np.arange(0.0, data.max(), 20.0)
+figU.colorbar(bdPlt, ax=axsU[0,1], ticks=tk)
 axsU[0,1].set_xticks([])
 axsU[0,1].set_xticks([], minor=True)
 axsU[0,1].set_yticks([])
 axsU[0,1].set_yticks([], minor=True)
+axsU[0,1].annotate('b', (0.03, 0.95), xycoords='axes fraction', fontweight='bold', fontsize='large')
      
      
 run = runs[3] # best2
@@ -284,28 +252,34 @@ groundingLineMask = (cellMask & groundingLineValue) // groundingLineValue
 #bed = f.variables['bas']
 
 #axsU[0,0].pcolormesh(x, y, bed[250,:,:]-bed[0,:,:])
-bdPlt = axsU[1,0].tricontourf(triang, bed[250,:]-bed[0,:], levels=100)
+data=bed[250,:]-bed[0,:]
+bdPlt=axsU[1,0].tricontourf(triang, data, levels=np.linspace(0.0, data.max(), num=300))
 #axsU[0,0].tricontour(triang, initialExtentMask[0,:]*0+1, colors='purple', levels=(0.5,))
 axsU[1,0].tricontour(triang, initialExtentMask[0,:], colors='white')
 axsU[1,0].tricontour(triang, groundingLineMask[0,:], colors='gray')
 axsU[1,0].tricontour(triang, groundingLineMask[250,:], colors='black')
-figU.colorbar(bdPlt, ax=axsU[1,0])
+tk=np.arange(0.0, data.max(), 10.0)
+figU.colorbar(bdPlt, ax=axsU[1,0], ticks=tk)
 axsU[1,0].set_xticks([])
 axsU[1,0].set_xticks([], minor=True)
 axsU[1,0].set_yticks([])
 axsU[1,0].set_yticks([], minor=True)
+axsU[1,0].annotate('c', (0.03, 0.95), xycoords='axes fraction', fontweight='bold', fontsize='large')
 
 #axsU[0,1].pcolormesh(x, y, bed[500,:,:]-bed[0,:,:])
 #axsU[0,0].tricontour(triang, initialExtentMask[0,:]*0+1, colors='purple', levels=(0.5,))
-bdPlt=axsU[1,1].tricontourf(triang, bed[500,:]-bed[0,:], levels=100)
+data=bed[500,:]-bed[0,:]
+bdPlt=axsU[1,1].tricontourf(triang, data, levels=np.linspace(0.0, data.max(), num=300))
 axsU[1,1].tricontour(triang, initialExtentMask[0,:], colors='white')
 axsU[1,1].tricontour(triang, groundingLineMask[0,:], colors='gray')
 axsU[1,1].tricontour(triang, groundingLineMask[500,:], colors='black')
-figU.colorbar(bdPlt, ax=axsU[1,1])
+tk=np.arange(0.0, data.max(), 20.0)
+figU.colorbar(bdPlt, ax=axsU[1,1], ticks=tk)
 axsU[1,1].set_xticks([])
 axsU[1,1].set_xticks([], minor=True)
 axsU[1,1].set_yticks([])
 axsU[1,1].set_yticks([], minor=True)
+axsU[1,1].annotate('d', (0.03, 0.95), xycoords='axes fraction', fontweight='bold', fontsize='large')
     
 # Customize plots
 #for ax in axs:
@@ -313,5 +287,7 @@ axsU[1,1].set_yticks([], minor=True)
 #axs[0].legend(loc='best', ncol=1)
 #axs[0,0].set_ylim(top=-1020000, bottom = -1120000) # hard-code limits for now
 #axs[0,0].set_xlim(left=-425000, right=-300000)
+
+
 
 plt.show()
