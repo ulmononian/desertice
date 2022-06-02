@@ -15,7 +15,7 @@ from matplotlib import cm
 import time
 
 doGIAfiles = True
-doGIAfiles = False
+#doGIAfiles = False
 
 doUpliftTS = False
 
@@ -269,6 +269,7 @@ class GIAoutputData:
    
          tic = time.perf_counter()
          self.upliftVol = np.zeros((nt,))
+         self.upliftMean = np.zeros((nt,))
          self.upliftOceanVol = np.zeros((nt,))
          self.vaf = np.zeros((nt,))
    
@@ -290,6 +291,7 @@ class GIAoutputData:
              upt = up[t,:,:]
              #self.upliftVol[t] = ((bedt - bed0) * dx**2).sum()
              self.upliftVol[t] = (upt * dx**2).sum()
+             self.upliftMean[t] = (upt).mean()
              
 
              hf = np.maximum(np.zeros(thkt.shape), -1.0 * bedt * rhow / rhoi)
@@ -317,6 +319,7 @@ class GIAoutputData:
              # remove these
              self.yrs = np.delete(self.yrs, run['bad_uplift_ind'])
              self.upliftVol = np.delete(self.upliftVol, run['bad_uplift_ind'])
+             self.upliftMean = np.delete(self.upliftMean, run['bad_uplift_ind'])
              self.vaf = np.delete(self.vaf, run['bad_uplift_ind'])
              self.upliftOceanVol = np.delete(self.upliftOceanVol, run['bad_uplift_ind'])
 
@@ -391,6 +394,19 @@ axSLR.set_ylim(GTtoSL(y1) - GTtoSL(VAF[0]), GTtoSL(y2) - GTtoSL(VAF[0]))
 #axSLR.set_yticks( range(int(GTtoSL(y1)), int(GTtoSL(y2))) )
 axSLR.set_ylabel('S.L. equiv. (mm)')
 axSLR.set_xlim(x1, x2)
+
+# SL version
+fig = plt.figure(33, facecolor='w')
+axSL = fig.add_subplot(1, 1, 1)
+for run in runs:
+    print("Plotting run: " + run['name'])
+    yrs = run['data'].gs.yrs
+    VAF = run['data'].gs.VAF
+    axSL.plot(yrs, GTtoSL(VAF-VAF[0]), label = run['legname'], color=run['color'])
+axSL.legend(loc='best', ncol=1)
+axSL.set_xlabel('Year')
+axSL.set_ylabel('Sea-level rise (mm)')
+axSL.grid(True)
 
 
 # -------
@@ -543,34 +559,37 @@ axGLf.tick_params(bottom=True, top=True, left=True, right=True)
 # GIA grid uplift time series figure
 # --------
 if doGIAfiles:
- fig = plt.figure('upGIA', facecolor='w', figsize=(12, 6))
- axUp = fig.add_subplot(1, 2, 1)
- axUp2 = fig.add_subplot(1, 2, 2)
+ fig = plt.figure('upGIA', facecolor='w', figsize=(5, 5))
+ #axUp = fig.add_subplot(1, 2, 1)
+ axUp2 = fig.add_subplot(1, 1, 1)
  for run in runs:
      if run['name'] in  ('ctrl', 'PIGLctrl'):
          continue
      print("Plotting run: " + run['name'])
      yrs = run['data'].GIA.yrs
+     upliftMean = run['data'].GIA.upliftMean
      upliftVol = run['data'].GIA.upliftVol / (362.0e6 * 1000.0**2) * 1000.0 # mm
      upliftOceanVol = run['data'].GIA.upliftOceanVol / (362.0e6 * 1000.0**2) * 1000.0 # mm
      vaf = run['data'].GIA.vaf / (362.0e6 * 1000.0**2) * 1000.0 * rhoi/rhow # mm ocn
      bary = vaf[0] - vaf
  
-     axUp.plot(yrs, upliftVol, label = run['legname'], color=run['color'])
-     axUp.plot(yrs, upliftOceanVol, '--', color=run['color'])
+     #axUp.plot(yrs, upliftVol, label = run['legname'], color=run['color'])
+     #axUp.plot(yrs, upliftOceanVol, '--', color=run['color'])
  
      axUp2.plot(yrs, bary, '-', label = run['legname'], color=run['color'])
-     axUp2.plot(yrs, bary + upliftOceanVol, '--', color=run['color'])
+     axUp2.plot(yrs, upliftOceanVol, '--', color=run['color'])
+     axUp2.fill_between(yrs, bary, bary + upliftOceanVol, color=run['color'], alpha=0.3)
  
- axUp.legend(loc='best', ncol=1)
- axUp.set_xlabel('Year')
- axUp.set_ylabel('Uplift volume (mm SLE)')
- axUp.tick_params(bottom=True, top=True, left=True, right=True)
+ #axUp.legend(loc='best', ncol=1)
+ #axUp.set_xlabel('Year')
+ #axUp.set_ylabel('Uplift volume (mm SLE)')
+ #axUp.tick_params(bottom=True, top=True, left=True, right=True)
  
  axUp2.legend(loc='best', ncol=1)
  axUp2.set_xlabel('Year')
  axUp2.set_ylabel('Sea level rise equivalent (mm)')
  axUp2.tick_params(bottom=True, top=True, left=True, right=True)
+ axUp2.grid(True)
 
 
 
