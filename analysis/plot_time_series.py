@@ -15,7 +15,7 @@ from matplotlib import cm
 import time
 
 doGIAfiles = True
-#doGIAfiles = False
+doGIAfiles = False
 
 doUpliftTS = False
 
@@ -590,6 +590,30 @@ if doGIAfiles:
  axUp2.set_ylabel('Sea level rise equivalent (mm)')
  axUp2.tick_params(bottom=True, top=True, left=True, right=True)
  axUp2.grid(True)
+
+ fig9 = plt.figure('ocean error', facecolor='w', figsize=(5, 5))
+ axUp9 = fig9.add_subplot(1, 1, 1)
+ for run in runs:
+     if run['name'] in  ('ctrl', 'PIGLctrl'):
+         continue
+     print("Plotting run: " + run['name'])
+     yrs = run['data'].GIA.yrs
+     upliftMean = run['data'].GIA.upliftMean
+     upliftVol = run['data'].GIA.upliftVol / (362.0e6 * 1000.0**2) * 1000.0 # mm
+     upliftOceanVol = run['data'].GIA.upliftOceanVol / (362.0e6 * 1000.0**2) * 1000.0 # mm
+     vaf = run['data'].GIA.vaf / (362.0e6 * 1000.0**2) * 1000.0 * rhoi/rhow # mm ocn
+     bary = vaf[0] - vaf
+ 
+     #axUp.plot(yrs, upliftVol, label = run['legname'], color=run['color'])
+     #axUp.plot(yrs, upliftOceanVol, '--', color=run['color'])
+ 
+     axUp9.plot(yrs,upliftOceanVol/(bary), '-', label = run['legname'], color=run['color'])
+ axUp9.legend(loc='best', ncol=1)
+ axUp9.set_xlabel('Year')
+ axUp9.set_ylabel('ocean disp/bary')
+ axUp9.tick_params(bottom=True, top=True, left=True, right=True)
+ axUp9.grid(True)
+
 
 
 

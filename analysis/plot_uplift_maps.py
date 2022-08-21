@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import matplotlib.tri as tri
 import cmocean
+from matplotlib.colors import TwoSlopeNorm
 
 rhoi = 910.0
 rhosw = 1028.0
@@ -108,26 +109,13 @@ dynamicValue = 2
 floatValue = 4
 groundingLineValue = 256
 
-# Use rows for q values, columns for climate forcings.
-# Currently this means plotting all time levels on the same
-# axes, which may or may not work, depending on application.
-# This could definitely be improved.
-fig = plt.figure(1, facecolor='w', figsize=(16,7))
-axs = fig.subplots(1, 3)#, sharex=True, sharey=True) 
-
-
-
-# Plot bed topo and initial extent on all axes using first file
-bedPlot = []
-initExtentPlot = []
 f = Dataset(runs[0]['path']+"/output_2015.nc", 'r')
 xCell = f.variables["xCell"][:]
 yCell = f.variables["yCell"][:]
-bed = f.variables["bedTopography"][:]
 cellMask = f.variables["cellMask"][:]
+thickness0 = f.variables["thickness"][0]
 initialExtentMask = (cellMask & initialExtentValue) // initialExtentValue
-groundingLineMask = (cellMask & groundingLineValue) // groundingLineValue
-
+initialExtentMask2 = (thickness0>2000.0)
 # Generate triangulation to use for plotting data
 
 def dist(i1, i2):  # helper distance fn
@@ -148,48 +136,15 @@ for t in range(len(triang.triangles)):
         triMask[t] = True
 triang.set_mask(triMask)
 
-
-for ax in axs.ravel(): 
-    #bedPlot.append(ax.tricontourf(xCell, yCell, bed[0,:], levels=100, vmin=-2500.0, vmax=0.0, cmap='BrBG'))
-    bdPlt = ax.tricontourf(triang, bed[0,:], levels=100, vmin=-2000.0, vmax=0.0, cmap=cmocean.cm.deep_r, extend='both')
-    initExtentPlot.append(ax.tricontour(triang, initialExtentMask[0,:], colors='white'))
-    initExtentPlot.append(ax.tricontour(triang, groundingLineMask[0,:], colors='gray'))
-    ax.axis('equal')
-    ax.set_xticks([])
-    ax.set_xticks([], minor=True)
-    ax.set_yticks([])
-    ax.set_yticks([], minor=True)
-f.close()
-
-fig.subplots_adjust(right=0.8)
-cbar_ax = fig.add_axes([0.9, 0.1, 0.04, 0.8])
-#bdPlt.set_clim(-2.0, 2.0)
-cbar = fig.colorbar(bdPlt, cax=cbar_ax)
-
-
-   
-#Loop over runs
-for run in runs:
-    DS = xr.open_mfdataset(run['path'] + '/' + 'output_2*.nc', combine='nested', concat_dim='Time', decode_timedelta=False, chunks={"Time": 10})
-    cellMask = DS["cellMask"]
-    thickness = DS['thickness']
-    bed = DS['bedTopography']
-    floatMask = (cellMask & floatValue) // floatValue
-    dynamicMask = (cellMask & dynamicValue) // dynamicValue
-    groundingLineMask = (cellMask & groundingLineValue) // groundingLineValue
-    col = 0
-    row = 0
-    
-    # Loop over time levels
-    for t in range(len(timeLevs)):
-        timeLev = int(timeLevs[t]) #these are strings for some reason; make int to index
-        col = t
-        axs[col].tricontour(triang, groundingLineMask[timeLev, :], 
-           levels=[0.9999], colors=run['color'], linestyles='solid') #, label=run['name'])
-    if col == 0 :
-        axs[col].legend(loc='best', ncol=1)
-#plt.clim(-2000,0)
-        
+boundary = set()
+for i in range(len(triang.neighbors)):
+    for j in range(3):
+        if (triang.neighbors[i,j] == -1):
+            boundary.add(triang.triangles[i,j])
+            boundary.add(triang.triangles[i,(j+1)%3])
+#            nk1,nk2 = (k+1)%3, (k+2)%3
+#            boundary.add(triang.simplices[i][nk1])
+#            boundary.add(triang.simplices[i][nk2])
 
 # =============================
 # Plot uplift maps
@@ -209,16 +164,41 @@ bed = DS['bedTopography']
 #floatMask = (cellMask & floatValue) // floatValue
 #dynamicMask = (cellMask & dynamicValue) // dynamicValue
 groundingLineMask = (cellMask & groundingLineValue) // groundingLineValue
- 
+
+# GIA file
+#DSgia = xr.open_mfdataset(run['path'] + '/' + 'uplift_GIA_all.nc', combine='nested', concat_dim='Time', decode_timedelta=False, chunks={"Time": 10})
+DSgia = Dataset(run['path'] + '/' + 'uplift_GIA_all.nc')
+uplift = DSgia.variables['uplift']
+xgia = DSgia.variables['x'][:]
+ygia = DSgia.variables['y'][:]
+
+tk2=np.arange(0.0, 268.0, 20.0)
+levs=np.arange(0.0, 268.0, 0.1)
+
 #axsU[0,0].pcolormesh(x, y, bed[250,:,:]-bed[0,:,:])
 data=bed[285,:]-bed[0,:]
-bdPlt=axsU[0,0].tricontourf(triang, data, levels=np.linspace(0.0, data.max(), num=300))
+#bdPlt=axsU[0,0].tricontourf(triang, data, levels=np.linspace(0.0, data.max(), num=300))
+data = uplift[285][:,:]
+norm = TwoSlopeNorm(vmin=np.amin(data), vcenter=0, vmax=np.amax(data))
+#bdPlt=axsU[0,0].contourf(xgia, ygia, data, levels=3000, norm=norm, cmap='RdBu') # include subsidence
+bdPlt=axsU[0,0].contourf(xgia, ygia, data, levels=levs, extend='min', cmap='viridis_r')
+axsU[0,0].contour(xgia, ygia, data, levels=np.arange(-10, 0.2, 1.0), colors='olive')
 tk=np.arange(0.0, data.max(), 10.0)
+#tk=np.insert(tk[1:],0,np.amin(data))
 #axsU[0,0].tricontour(triang, initialExtentMask[0,:]*0+1, colors='purple', levels=(0.5,))
 axsU[0,0].tricontour(triang, initialExtentMask[0,:], colors='white')
+#axsU[0,0].tricontour(triang, initialExtentMask2, colors='white', levels=(0.5,))
 axsU[0,0].tricontour(triang, groundingLineMask[0,:], colors='gray')
 axsU[0,0].tricontour(triang, groundingLineMask[285,:], colors='black')
-figU.colorbar(bdPlt, ax=axsU[0,0], ticks=tk)
+axsU[0,0].plot(xCell[list(boundary)], yCell[list(boundary)], '.r', markersize=1) # plot MALI domain bdy
+#print(f'shape={data.shape}')
+#print(f'len xgia={xgia.shape}, len ygia={ygia.shape}')
+(yind,xind)=np.unravel_index(np.argmax(data), data.shape)
+axsU[0,0].plot(xgia[xind], ygia[yind], 'wx')
+axsU[0,0].annotate(f"{data[yind,xind]:.2f} m", (xgia[xind], ygia[yind]), color='w', textcoords='offset points', xytext=(5,5))
+#print(f'max={data.max()}, xyval={data[yind,xind]}, xyval2={data[xind,yind]}')
+cbar = figU.colorbar(bdPlt, ax=axsU[0,0], ticks=tk2)
+cbar.set_label('uplift (m)', rotation=270, labelpad=15)
 axsU[0,0].set_xticks([])
 axsU[0,0].set_xticks([], minor=True)
 axsU[0,0].set_yticks([])
@@ -228,12 +208,23 @@ axsU[0,0].annotate('a', (0.03, 0.95), xycoords='axes fraction', fontweight='bold
 #axsU[0,1].pcolormesh(x, y, bed[500,:,:]-bed[0,:,:])
 #axsU[0,0].tricontour(triang, initialExtentMask[0,:]*0+1, colors='purple', levels=(0.5,))
 data=bed[500,:]-bed[0,:]
-bdPlt=axsU[0,1].tricontourf(triang, data, levels=np.linspace(0.0, data.max(), num=300))
+#bdPlt=axsU[0,1].tricontourf(triang, data, levels=np.linspace(0.0, data.max(), num=300))
+data = uplift[500][:,:]
+norm = TwoSlopeNorm(vmin=np.amin(data), vcenter=0, vmax=np.amax(data))
+#bdPlt=axsU[0,1].contourf(xgia, ygia, data, levels=3000, norm=norm, cmap='RdBu')
+bdPlt=axsU[0,1].contourf(xgia, ygia, data, levels=levs, extend='min', cmap='viridis_r')
+axsU[0,1].contour(xgia, ygia, data, levels=np.arange(-10, 0.2, 1.0), colors='olive')
 axsU[0,1].tricontour(triang, initialExtentMask[0,:], colors='white')
 axsU[0,1].tricontour(triang, groundingLineMask[0,:], colors='gray')
 axsU[0,1].tricontour(triang, groundingLineMask[500,:], colors='black')
 tk=np.arange(0.0, data.max(), 20.0)
-figU.colorbar(bdPlt, ax=axsU[0,1], ticks=tk)
+#tk=np.insert(tk[1:],0,np.amin(data))
+axsU[0,1].plot(xCell[list(boundary)], yCell[list(boundary)], '.r', markersize=1) # plot MALI domain bdy
+(yind,xind)=np.unravel_index(np.argmax(data), data.shape)
+axsU[0,1].plot(xgia[xind], ygia[yind], 'wx')
+axsU[0,1].annotate(f"{data[yind,xind]:.2f} m", (xgia[xind], ygia[yind]), color='w', textcoords='offset points', xytext=(5,5))
+cbar = figU.colorbar(bdPlt, ax=axsU[0,1], ticks=tk2)
+cbar.set_label('uplift (m)', rotation=270, labelpad=15)
 axsU[0,1].set_xticks([])
 axsU[0,1].set_xticks([], minor=True)
 axsU[0,1].set_yticks([])
@@ -241,7 +232,7 @@ axsU[0,1].set_yticks([], minor=True)
 axsU[0,1].annotate('b', (0.03, 0.95), xycoords='axes fraction', fontweight='bold', fontsize='large')
      
      
-run = runs[3] # best2
+run = runs[3] # VLV-thin
 DS = xr.open_mfdataset(run['path'] + '/' + 'output_2*.nc', combine='nested', concat_dim='Time', decode_timedelta=False, chunks={"Time": 10})
 bed = DS['bedTopography']
 cellMask = DS["cellMask"]
@@ -251,15 +242,36 @@ groundingLineMask = (cellMask & groundingLineValue) // groundingLineValue
 #y = f.variables['y'][:]
 #bed = f.variables['bas']
 
+# GIA file
+#DSgia = xr.open_mfdataset(run['path'] + '/' + 'uplift_GIA_all.nc', combine='nested', concat_dim='Time', decode_timedelta=False, chunks={"Time": 10})
+#uplift = DSgia['uplift']
+#xgia = DSgia['x']
+#ygia = DSgia['y']
+DSgia = Dataset(run['path'] + '/' + 'uplift_GIA_all.nc')
+uplift = DSgia.variables['uplift']
+xgia = DSgia.variables['x'][:]
+ygia = DSgia.variables['y'][:]
+
 #axsU[0,0].pcolormesh(x, y, bed[250,:,:]-bed[0,:,:])
 data=bed[285,:]-bed[0,:]
-bdPlt=axsU[1,0].tricontourf(triang, data, levels=np.linspace(0.0, data.max(), num=300))
+#bdPlt=axsU[1,0].tricontourf(triang, data, levels=np.linspace(0.0, data.max(), num=300))
+data = uplift[285][:,:]
+norm = TwoSlopeNorm(vmin=np.amin(data), vcenter=0, vmax=np.amax(data))
+#bdPlt=axsU[1,0].contourf(xgia, ygia, data, levels=3000, norm=norm, cmap='RdBu')
+bdPlt=axsU[1,0].contourf(xgia, ygia, data, levels=levs, extend='min', cmap='viridis_r')
+axsU[1,0].contour(xgia, ygia, data, levels=np.arange(-10, 0.2, 1.0), colors='olive')
 #axsU[0,0].tricontour(triang, initialExtentMask[0,:]*0+1, colors='purple', levels=(0.5,))
 axsU[1,0].tricontour(triang, initialExtentMask[0,:], colors='white')
 axsU[1,0].tricontour(triang, groundingLineMask[0,:], colors='gray')
 axsU[1,0].tricontour(triang, groundingLineMask[285,:], colors='black')
 tk=np.arange(0.0, data.max(), 10.0)
-figU.colorbar(bdPlt, ax=axsU[1,0], ticks=tk)
+#tk=np.insert(tk[1:],0,np.amin(data))
+axsU[1,0].plot(xCell[list(boundary)], yCell[list(boundary)], '.r', markersize=1) # plot MALI domain bdy
+(yind,xind)=np.unravel_index(np.argmax(data), data.shape)
+axsU[1,0].plot(xgia[xind], ygia[yind], 'wx')
+axsU[1,0].annotate(f"{data[yind,xind]:.2f} m", (xgia[xind], ygia[yind]), color='w', textcoords='offset points', xytext=(5,5))
+cbar = figU.colorbar(bdPlt, ax=axsU[1,0], ticks=tk2)
+cbar.set_label('uplift (m)', rotation=270, labelpad=15)
 axsU[1,0].set_xticks([])
 axsU[1,0].set_xticks([], minor=True)
 axsU[1,0].set_yticks([])
@@ -269,12 +281,24 @@ axsU[1,0].annotate('c', (0.03, 0.95), xycoords='axes fraction', fontweight='bold
 #axsU[0,1].pcolormesh(x, y, bed[500,:,:]-bed[0,:,:])
 #axsU[0,0].tricontour(triang, initialExtentMask[0,:]*0+1, colors='purple', levels=(0.5,))
 data=bed[500,:]-bed[0,:]
-bdPlt=axsU[1,1].tricontourf(triang, data, levels=np.linspace(0.0, data.max(), num=300))
+#bdPlt=axsU[1,1].tricontourf(triang, data, levels=np.linspace(0.0, data.max(), num=300))
+data = uplift[500][:,:]
+norm = TwoSlopeNorm(vmin=np.amin(data), vcenter=0, vmax=np.amax(data))
+#bdPlt=axsU[1,1].contourf(xgia, ygia, data, levels=3000, norm=norm, cmap='RdBu')
+bdPlt=axsU[1,1].contourf(xgia, ygia, data, levels=levs, extend='min', cmap='viridis_r')
+axsU[1,1].contour(xgia, ygia, data, levels=np.arange(-10, 0.2, 1.0), colors='olive')
+#bdPlt=axsU[1,1].contourf(xgia, ygia, uplift[500], levels=300)
 axsU[1,1].tricontour(triang, initialExtentMask[0,:], colors='white')
 axsU[1,1].tricontour(triang, groundingLineMask[0,:], colors='gray')
 axsU[1,1].tricontour(triang, groundingLineMask[500,:], colors='black')
 tk=np.arange(0.0, data.max(), 20.0)
-figU.colorbar(bdPlt, ax=axsU[1,1], ticks=tk)
+#tk=np.insert(tk[1:],0,np.amin(data))
+axsU[1,1].plot(xCell[list(boundary)], yCell[list(boundary)], '.r', markersize=1) # plot MALI domain bdy
+(yind,xind)=np.unravel_index(np.argmax(data), data.shape)
+axsU[1,1].plot(xgia[xind], ygia[yind], 'wx')
+axsU[1,1].annotate(f"{data[yind,xind]:.2f} m", (xgia[xind], ygia[yind]), color='w', textcoords='offset points', xytext=(5,5))
+cbar = figU.colorbar(bdPlt, ax=axsU[1,1], ticks=tk2)
+cbar.set_label('uplift (m)', rotation=270, labelpad=15)
 axsU[1,1].set_xticks([])
 axsU[1,1].set_xticks([], minor=True)
 axsU[1,1].set_yticks([])
