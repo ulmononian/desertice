@@ -134,12 +134,15 @@ PIGLN3 = {
 
 
 runs = [ctrl, N1, N2, N4, N3]  # standard set of runs
-##runs = [ctrl, N1, N2] # testing faster
+#runs = [ctrl, N1, N2] # testing faster
 #runs = [ctrl, PIGLctrl, N3, PIGLN3]; doGIAfiles = False  # melt comparison runs
 
 # constants
 rhoi = 910.0
-rhow = 1028.0
+rhoo = 1028.0
+rhow = 1000.0
+#Aocn = 362.0e6 * 1000.0 * 1000.0 # m2
+Aocn = 3.625e14 # m2
 
 def xtime2numtimeMy(xtime):
   """Define a function to convert xtime character array to numeric time values using local arithmetic"""
@@ -158,10 +161,20 @@ def xtime2numtimeMy(xtime):
 
 def GTtoSL(GT):
    #return (GT-VAF[0])*1.0e12/1028.0/1000.0**3/362.0e6*1000.0*1000.0
-   return GT *1.0e12/1028.0/1000.0**3/362.0e6*1000.0*1000.0 * -1.0
+   #return GT *1.0e12/1028.0/1000.0**3/362.0e6*1000.0*1000.0 * -1.0
+   return GT * 1.0e12 / rhoo / Aocn * -1.0
 
 def grounded(cellMask):
-   return ((cellMask&32)//32) & ~((cellMask&4)//4)
+   #return ((cellMask&32)//32) & ~((cellMask&4)//4)
+   return ((cellMask&32)//32) * np.logical_not((cellMask&4)//4)
+
+def nongrounded(cellMask):
+   #return ~(((cellMask&32)//32) & ~((cellMask&4)//4))
+   return np.logical_not(  (
+                            ((cellMask&32)//32) *
+                            np.logical_not(((cellMask&4)//4))
+                            )
+                            )
 
 # Define Run class for all std analyis
 class modelRun:
@@ -175,8 +188,7 @@ class modelRun:
       self.gs = globalStats(run)
       if doGIAfiles:
          self.GIA = GIAoutputData(run)
-      if doUpliftTS:
-         self.out = outputData(run)
+      self.out = outputData(run)
       toc = time.perf_counter()
       print(f"  Processed {run['name']} in {toc - tic:0.4f} seconds")
 
@@ -194,7 +206,7 @@ class globalStats:
 
       self.yrs = xtime2numtimeMy(self.xtimes)
       #self.dyrs = self.yrs[1:] - self.yrs[0:-1]
-      self.VAF = f.variables['volumeAboveFloatation'][:] / 1.0e12 * rhoi
+      self.VAF = f.variables['volumeAboveFloatation'][:] / 1.0e12 * rhoi # Gt
       self.melt = f.variables['totalFloatingBasalMassBal'][:] / -1.0e12 # Gt
       # Clean a few melt blips
       self.melt[self.melt>3000.0] = np.NAN
@@ -294,7 +306,7 @@ class GIAoutputData:
              self.upliftMean[t] = (upt).mean()
              
 
-             hf = np.maximum(np.zeros(thkt.shape), -1.0 * bedt * rhow / rhoi)
+             hf = np.maximum(np.zeros(thkt.shape), -1.0 * bedt * rhoo / rhoi)
              haf = np.maximum(np.zeros(thkt.shape), thkt - hf)
              self.vaf[t] = (dx**2 * haf).sum()
 
@@ -333,30 +345,98 @@ class outputData:
       # --------
       # Analysis from output file
       # --------
-      DS = xr.open_mfdataset(run['path'] + '/' + 'output_2*.nc', combine='nested', concat_dim='Time', decode_timedelta=False, chunks={"Time": 5})
+      DS = xr.open_mfdataset(run['path'] + '/' + 'output_2*.nc', combine='nested', concat_dim='Time', decode_timedelta=False)
+      timeStride = 1
+      inds = np.arange(0, DS.dims['Time'], timeStride, dtype='i')
       self.yrs = DS['daysSinceStart'].load() / 365.0 + 2015.0
-      self.nt = DS.dims['Time']
+      self.yrs = self.yrs[inds]
+      #print(self.yrs)
+      #self.nt = DS.dims['Time']
+      self.nt = len(self.yrs)
+      nCells = DS.dims['nCells']
 
       cellMask = DS['cellMask']
       bed = DS['bedTopography']
+      bed0 = bed.isel(Time=0).load()
       thickness = DS['thickness']
-      areaCell = DS['areaCell'].load()
+      areaCell = DS['areaCell'][0,:].load()
 
       # volume
-      self.vol = np.zeros((self.nt,))
       self.vaf = np.zeros((self.nt,))
-      for t in range(self.nt):
-         self.vol[t] = (thickness.isel(Time=t) * areaCell).sum()
-         self.vaf[t] = (areaCell * grounded(cellMask.isel(Time=t)) * 
-            ( thickness.isel(Time=t) + (rhow / rhoi) * np.minimum(0.0*bed.isel(Time=t), bed.isel(Time=t)) )).sum()
+      self.pov = np.zeros((self.nt,))
+      self.SLCpovgrd = np.zeros((self.nt,))
+      self.SLCpovflt = np.zeros((self.nt,))
+      i=0
+      for t in inds:
+         #print(f"time={t}")
+         bedt = bed[t,:].load()
+         cellMaskt = cellMask[t,:].load()
+         thicknesst = thickness[t,:].load()
+         self.vaf[i] = (areaCell * grounded(cellMaskt) * 
+            np.maximum( thicknesst + (rhoo / rhoi) * np.minimum(np.zeros((nCells,)), bedt), 0.0)).sum()
+         self.pov[i] = (areaCell * np.maximum(0.0*bedt, -1.0*bedt) ).sum()
+         self.SLCpovgrd[i] = -1.0 * ((areaCell * grounded(cellMaskt) * np.maximum(0.0*bedt, -1.0*bedt) ).sum() / Aocn -
+                                     (areaCell * grounded(cellMaskt) * np.maximum(0.0*bed0, -1.0*bed0) ).sum() / Aocn) * 1000.0
+         self.SLCpovflt[i] = -1.0 * ((areaCell * nongrounded(cellMaskt) * np.maximum(0.0*bedt, -1.0*bedt) ).sum() / Aocn -
+                                     (areaCell * nongrounded(cellMaskt) * np.maximum(0.0*bed0, -1.0*bed0) ).sum() / Aocn) * 1000.0
+         i+=1
+      #print(self.vaf)
+      self.vafcorr = self.vaf + self.pov
 
-      # uplift
-      bed0 = bed.isel(time=0).load()
+      self.SLEaf = (self.vaf / Aocn) * (rhoi / rhoo)
+
+      self.SLCaf = -1.0 * (self.SLEaf - self.SLEaf[0]) * 1000.0 # mm
+      self.SLCpov = -1.0 * (self.pov/Aocn - self.pov[0]/Aocn) * 1000.0 # mm
+      self.SLCcorr = self.SLCaf + self.SLCpov
+      self.SLCcorrG = self.SLCaf + self.SLCpovgrd
+
+      # SLC rate  ----
+      self.SLCrate = self.SLCaf[1:] - self.SLCaf[0:-1] / (self.yrs[1:] - self.yrs[0:-1])
+      self.SLCcorrrate = self.SLCcorr[1:] - self.SLCcorr[0:-1] / (self.yrs[1:] - self.yrs[0:-1])
+      self.SLCcorrGrate = self.SLCcorrG[1:] - self.SLCcorrG[0:-1] / (self.yrs[1:] - self.yrs[0:-1])
+
+      # calculate SLR reduction 
+      if not run['name'] in  ('ctrl', 'PIGLctrl'):
+          ctrlSLCaf = runs[0]['data'].out.SLCaf
+          ctrlSLCcorr = runs[0]['data'].out.SLCcorr
+          ctrlSLCcorrG = runs[0]['data'].out.SLCcorrG
+          self.reduction = (1.0 - (self.SLCaf / runs[0]['data'].out.SLCaf)) * 100.0
+          self.reductionCorr = (1.0 - (self.SLCcorr / runs[0]['data'].out.SLCcorr)) * 100.0
+          self.reductionCorrG = (1.0 - (self.SLCcorrG / runs[0]['data'].out.SLCcorrG)) * 100.0
+
+      # calculate delay relative to control ---
+      self.SLCeven = np.linspace(0.0, 500.0, 1000)
+      self.timeOnSLCeven = np.interp(self.SLCeven, self.SLCaf, self.yrs)
+      self.timeOnSLCeven[self.timeOnSLCeven>2514.8] = np.nan
+      self.timeOnSLCcorreven = np.interp(self.SLCeven, self.SLCcorr, self.yrs)
+      self.timeOnSLCcorreven[self.timeOnSLCcorreven>2514.8] = np.nan
+      self.timeOnSLCcorrGeven = np.interp(self.SLCeven, self.SLCcorrG, self.yrs)
+      self.timeOnSLCcorrGeven[self.timeOnSLCcorrGeven>2514.8] = np.nan
+
+      if not run['name'] in  ('ctrl', 'PIGLctrl'):
+          self.delay = self.timeOnSLCeven - runs[0]['data'].out.timeOnSLCeven
+          self.delay[np.nonzero(self.SLCeven > self.SLCaf.max())] = np.nan # remove nonsensical delays
+          self.delay[np.nonzero(self.SLCeven < self.SLCaf.min())] = np.nan
+          self.delay[self.timeOnSLCeven>2514.8] = np.nan
+          self.delayCorr = self.timeOnSLCcorreven - runs[0]['data'].out.timeOnSLCcorreven
+          self.delayCorr[np.nonzero(self.SLCeven > self.SLCcorr.max())] = np.nan # remove nonsensical delays
+          self.delayCorr[np.nonzero(self.SLCeven < self.SLCcorr.min())] = np.nan
+          self.delayCorr[self.timeOnSLCcorreven>2514.8] = np.nan
+          self.delayCorrG = self.timeOnSLCcorrGeven - runs[0]['data'].out.timeOnSLCcorrGeven
+          self.delayCorrG[np.nonzero(self.SLCeven > self.SLCcorrG.max())] = np.nan # remove nonsensical delays
+          self.delayCorrG[np.nonzero(self.SLCeven < self.SLCcorrG.min())] = np.nan
+          self.delayCorr[self.timeOnSLCcorrGeven>2514.8] = np.nan
+
+
+      # uplift ----
+      bed0 = bed.isel(Time=0).load()
       self.maxUplift = np.zeros((self.nt,))
       self.maxGrdUplift = np.zeros((self.nt,))
       for t in range(self.nt):
-         self.maxUplift[t] = (bed.isel(Time.t)-bed0).max()
+         self.maxUplift[t] = (bed.isel(Time=t)-bed0).max()
          self.maxGrdUplift[t] = ((bed.isel(Time=t)-bed0) * grounded(cellMask.isel(Time=t))).max()
+
+      DS.close()
 
 
 # execute analysis on each run and build output
@@ -394,6 +474,46 @@ axSLR.set_ylim(GTtoSL(y1) - GTtoSL(VAF[0]), GTtoSL(y2) - GTtoSL(VAF[0]))
 #axSLR.set_yticks( range(int(GTtoSL(y1)), int(GTtoSL(y2))) )
 axSLR.set_ylabel('S.L. equiv. (mm)')
 axSLR.set_xlim(x1, x2)
+
+# SL version
+fig = plt.figure(33, facecolor='w')
+axSL = fig.add_subplot(1, 1, 1)
+for run in runs:
+    print("Plotting run: " + run['name'])
+    yrs = run['data'].gs.yrs
+    VAF = run['data'].gs.VAF
+    axSL.plot(yrs, GTtoSL(VAF-VAF[0]), label = run['legname'], color=run['color'])
+axSL.legend(loc='best', ncol=1)
+axSL.set_xlabel('Year')
+axSL.set_ylabel('Sea-level rise (mm)')
+axSL.grid(True)
+
+# --------
+# SLE figure
+# --------
+figSLE = plt.figure(101, facecolor='w')
+axSLE = figSLE.add_subplot(1, 1, 1)
+
+for run in runs:
+    print("Plotting run: " + run['name'])
+    yrs = run['data'].out.yrs
+    VAF = run['data'].out.vaf
+    POV = run['data'].out.pov
+    SLCpovgrd = run['data'].out.SLCpovgrd
+    SLCpovflt = run['data'].out.SLCpovflt
+    #VAFcorr = run['data'].out.vafcorr
+
+    axSLE.plot(yrs, run['data'].out.SLCaf, '-', label = run['legname']+' SLCaf', color=run['color'])
+    #axSLE.plot(yrs, SLCpov, ':', label = run['legname']+' SLCpov', color=run['color'])
+    axSLE.plot(yrs, run['data'].out.SLCcorr, '--', label = run['legname']+' SLCcorr', color=run['color'])
+    axSLE.plot(yrs, run['data'].out.SLCcorrG, ':', label = run['legname']+' SLCcorrGrd', color=run['color'])
+    axSLE.plot(yrs, run['data'].out.SLCpovflt+run['data'].out.SLCaf, '-.', label = run['legname']+' SLCcorrNonGrd', color=run['color'])
+
+axSLE.legend(loc='best', ncol=1, prop={'size': 6})
+axSLE.set_xlabel('Year')
+axSLE.set_ylabel('SLC (mm)')
+axSLE.grid(True)
+
 
 # SL version
 fig = plt.figure(33, facecolor='w')
@@ -570,7 +690,7 @@ if doGIAfiles:
      upliftMean = run['data'].GIA.upliftMean
      upliftVol = run['data'].GIA.upliftVol / (362.0e6 * 1000.0**2) * 1000.0 # mm
      upliftOceanVol = run['data'].GIA.upliftOceanVol / (362.0e6 * 1000.0**2) * 1000.0 # mm
-     vaf = run['data'].GIA.vaf / (362.0e6 * 1000.0**2) * 1000.0 * rhoi/rhow # mm ocn
+     vaf = run['data'].GIA.vaf / (362.0e6 * 1000.0**2) * 1000.0 * rhoi/rhoo # mm ocn
      bary = vaf[0] - vaf
  
      #axUp.plot(yrs, upliftVol, label = run['legname'], color=run['color'])
@@ -601,7 +721,7 @@ if doGIAfiles:
      upliftMean = run['data'].GIA.upliftMean
      upliftVol = run['data'].GIA.upliftVol / (362.0e6 * 1000.0**2) * 1000.0 # mm
      upliftOceanVol = run['data'].GIA.upliftOceanVol / (362.0e6 * 1000.0**2) * 1000.0 # mm
-     vaf = run['data'].GIA.vaf / (362.0e6 * 1000.0**2) * 1000.0 * rhoi/rhow # mm ocn
+     vaf = run['data'].GIA.vaf / (362.0e6 * 1000.0**2) * 1000.0 * rhoi/rhoo # mm ocn
      bary = vaf[0] - vaf
  
      #axUp.plot(yrs, upliftVol, label = run['legname'], color=run['color'])
@@ -645,6 +765,60 @@ if doUpliftTS:
  axUp2.legend(loc='best', ncol=1)
  axUp2.set_xlabel('VAF loss (Gt)')
  axUp2.set_ylabel('Uplift (m)')
+
+# -------
+# Bunch of stats - using corrected SLC
+# -------
+fig = plt.figure(222, facecolor='w', figsize=(8, 14))
+nr = 4
+axVAF = fig.add_subplot(nr, 1, 1)
+axReduc = fig.add_subplot(nr, 1, 3)
+axDelay = fig.add_subplot(nr, 1, 4)
+axVAFrate = fig.add_subplot(nr, 1, 2)
+
+for run in runs:
+    print("Plotting run: " + run['name'])
+
+    thisRun = run['data'].out
+    yrs = thisRun.yrs
+
+    axVAF.plot(yrs, thisRun.SLCaf, label = run['legname'], color=run['color'], linestyle=run['style'])
+    #axVAF.plot(yrs, thisRun.SLCcorr, color=run['color'], linestyle='--', label='_nolegend_')
+    axVAF.plot(yrs, thisRun.SLCcorrG, color=run['color'], linestyle=':', label='_nolegend_')
+
+    if not run['name'] in  ('ctrl', 'PIGLctrl'):
+       axReduc.plot(yrs, thisRun.reduction, label = run['legname'], color=run['color'], linestyle=run['style'])
+       #axReduc.plot(yrs, thisRun.reductionCorr, color=run['color'], linestyle='--', label='_nolegend_')
+       axReduc.plot(yrs, thisRun.reductionCorrG, color=run['color'], linestyle=':', label='_nolegend_')
+
+       axDelay.plot(thisRun.timeOnSLCeven, thisRun.delay, label = run['legname'], color=run['color'], linestyle=run['style'])
+       #axDelay.plot(thisRun.timeOnSLCeven, thisRun.delayCorr, color=run['color'], linestyle='--', label='_nolegend_')
+       axDelay.plot(thisRun.timeOnSLCeven, thisRun.delayCorrG, color=run['color'], linestyle=':', label='_nolegend_')
+
+    axVAFrate.plot(yrs[1:], thisRun.SLCrate, label = run['legname'], color=run['color'], linestyle=run['style'])
+    #axVAFrate.plot(yrs[1:], thisRun.SLCcorrrate, color=run['color'], linestyle='--', label='_nolegend_')
+    axVAFrate.plot(yrs[1:], thisRun.SLCcorrGrate, color=run['color'], linestyle=':', label='_nolegend_')
+
+axVAF.legend(loc='best', ncol=1)
+#axVAF.set_xlabel('Year')
+axVAF.set_ylabel('SLR (mm)')
+axVAF.tick_params(bottom=True, top=True, left=True, right=False)
+axVAF.grid(True)
+
+#axReduc.set_xlabel('Year')
+axReduc.set_ylabel('Reduction in SLR \nfrom control (%)')
+axReduc.tick_params(bottom=True, top=True, left=True, right=True)
+axReduc.grid(True)
+
+axDelay.set_xlabel('Year')
+axDelay.set_ylabel('Delay in SLR\nfrom control (yr)')
+axDelay.tick_params(bottom=True, top=True, left=True, right=True)
+axDelay.grid(True)
+
+#axVAFrate.set_xlabel('Year')
+axVAFrate.set_ylabel('SLR rate (mm yr${^-1}$)')
+axVAFrate.tick_params(bottom=True, top=True, left=True, right=True)
+axVAFrate.grid(True)
 
 
 # --------
